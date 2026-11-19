@@ -90,6 +90,17 @@ export function selectStep(state: DeckState, step: StepId): DeckState {
   return { ...state, active: step };
 }
 
+export function nextStep(state: DeckState): StepId | null {
+  return STEPS[STEPS.indexOf(state.active) + 1] ?? null;
+}
+
+/** The open step, a finished step, or the immediate next step once it can be set. */
+export function canOpen(state: DeckState, step: StepId): boolean {
+  if (state.active === step) return true;
+  if (selectStep(state, step).active === step) return true;
+  return canFinish(state) && nextStep(state) === step;
+}
+
 export function canHold(state: DeckState): boolean {
   if (state.phase !== "edit") return false;
   return STEPS.every(
@@ -180,7 +191,7 @@ export function railStatus(state: DeckState, reducedMotion: boolean): string {
   }
   if (state.active === "foundry" && state.values.foundry.trim().length === 0) return "Type an id.";
   if (state.active === "job" && state.values.job.trim().length === 0) return "Type what it will do.";
-  return "Press Enter to set this step.";
+  return "Use the arrow for the next step.";
 }
 
 export function fieldStatus(state: DeckState): string {

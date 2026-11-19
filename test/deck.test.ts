@@ -9,6 +9,8 @@ import {
   finish,
   holdCue,
   railStatus,
+  canOpen,
+  nextStep,
   selectStep,
   setValue,
   type DeckState,
@@ -81,6 +83,22 @@ test("cancel returns to the step that was active", () => {
   assert.equal(state.active, "foundry");
   assert.equal(state.phase, "edit");
   assert.equal(state.receipt.length, 0);
+});
+
+test("the next step opens once the current step has a value", () => {
+  const start = createDeck();
+  assert.equal(canOpen(start, "account"), false);
+  assert.equal(nextStep(start), "account");
+  const named = setValue(start, "name", "Keeper");
+  assert.equal(canOpen(named, "name"), true);
+  assert.equal(canOpen(named, "account"), true);
+  assert.equal(canOpen(named, "foundry"), false);
+  assert.equal(railStatus(named, false), "Use the arrow for the next step.");
+  const account = finish(named);
+  assert.equal(canOpen(account, "foundry"), false);
+  const filled = setValue(account, "account", "alpha.testnet");
+  assert.equal(canOpen(filled, "foundry"), true);
+  assert.equal(canOpen(filled, "name"), true);
 });
 
 test("the hold cue names the open step", () => {

@@ -5,12 +5,14 @@ import {
   beginHold,
   canFinish,
   canHold,
+  canOpen,
   cancelHold,
   completeHold,
   createDeck,
   fieldStatus,
   finish,
   holdCue,
+  nextStep,
   railStatus,
   receiptPreview,
   selectStep,
@@ -41,7 +43,6 @@ function must<T extends Element>(selector: string): T {
 }
 
 const canvas = must<HTMLCanvasElement>("#field");
-const setBtn = must<HTMLButtonElement>("#set-step");
 const holdBtn = must<HTMLButtonElement>("#hold");
 const holdLabel = must<HTMLElement>("#hold-label");
 const meter = must<HTMLElement>("#meter");
@@ -88,12 +89,8 @@ const sentJobs = new Set<number>();
 
 const field = new FieldView(canvas, {
   onPick(id) {
-    if (!isStep(id) || state.phase === "holding") return;
-    const next = selectStep(state, id);
-    if (next === state) return;
-    state = next;
-    renderUi();
-    focusStep(state.active);
+    if (!isStep(id)) return;
+    openStep(id);
   },
 });
 
@@ -124,10 +121,10 @@ async function lookupAccount(id: string): Promise<void> {
   accountView = read.view;
   accountNear = read.near;
   sayAccount(accountLine());
-  if (read.view === "present" && state.values.account === id && canFinish(state) && state.active === "account") {
-    state = finish(state);
-  }
+  const before = state.active;
+  if (state.values.account === id) advanceAccountIfReady();
   renderUi();
+  if (state.active !== before) focusStep(state.active);
 }
 
 const wallets = createWalletSession((id) => {
@@ -362,9 +359,10 @@ function renderUi(): void {
     item.classList.toggle("is-active", state.active === step);
     item.classList.toggle("is-done", state.done.includes(step));
     const tab = item.querySelector<HTMLButtonElement>(".step-tab");
-    const open = selectStep(state, step).active === step || state.active === step;
     tab?.setAttribute("aria-current", state.active === step ? "step" : "false");
-    tab?.setAttribute("aria-disabled", open ? "false" : "true");
+    tab?.setAttribute("aria-disabled", canOpen(state, step) ? "false" : "true");
+    const next = item.querySelector<HTMLButtonElement>("[data-next]");
+    if (next) next.disabled = state.active !== step || !canFinish(state);
     const val = item.querySelector<HTMLElement>("[data-val]");
     if (val) val.textContent = state.values[step].trim();
     const input = item.querySelector<HTMLInputElement>("input");
@@ -375,11 +373,6 @@ function renderUi(): void {
       }
     }
   }
-
-  const canSet = canFinish(state);
-  setBtn.hidden = !canSet;
-  setBtn.disabled = !canSet;
-  setBtn.textContent = "Set";
 
   const armed = readyToHold();
   holdBtn.disabled = rehearsed || (!holding && !armed);
@@ -458,14 +451,34 @@ function renderUi(): void {
   }, localStorage);
 }
 
+function advanceAccountIfReady(): void {
+  if (state.active === "account" && accountView === "present" && canFinish(state)) {
+    state = finish(state);
+  }
+}
+
 function tryFinish(): void {
   if (!canFinish(state)) return;
   state = finish(state);
+  advanceAccountIfReady();
   renderUi();
   if (readyToHold()) {
     holdBtn.focus();
     return;
   }
+  focusStep(state.active);
+}
+
+function openStep(step: StepId): void {
+  if (state.phase === "holding") return;
+  if (step !== state.active && step === nextStep(state) && canFinish(state)) {
+    tryFinish();
+    return;
+  }
+  const next = selectStep(state, step);
+  if (next === state) return;
+  state = next;
+  renderUi();
   focusStep(state.active);
 }
 
@@ -518,11 +531,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-select]").forEach((tab) => {
   tab.addEventListener("click", () => {
     if (tab.getAttribute("aria-disabled") === "true") return;
     if (!isStep(tab.dataset.select)) return;
-    const next = selectStep(state, tab.dataset.select);
-    if (next === state) return;
-    state = next;
-    renderUi();
-    focusStep(state.active);
+    openStep(tab.dataset.select);
   });
 });
 
@@ -657,8 +666,10 @@ document.querySelectorAll<HTMLInputElement>("[data-field]").forEach((input) => {
   });
 });
 
-setBtn.addEventListener("click", () => {
-  tryFinish();
+document.querySelectorAll<HTMLButtonElement>("[data-next]").forEach((button) => {
+  button.addEventListener("click", () => {
+    tryFinish();
+  });
 });
 
 holdBtn.addEventListener("pointerdown", (event) => {
@@ -712,7 +723,7 @@ canvas.addEventListener("keydown", (event) => {
   }
   if (event.key !== "Enter") return;
   event.preventDefault();
-  if (!setBtn.disabled && !setBtn.hidden) {
+  if (canFinish(state)) {
     tryFinish();
     return;
   }
