@@ -1,0 +1,20 @@
+{
+  "name": "near-agents-site",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "node --test test/deck.test.ts test/account.test.ts test/deploy.test.ts test/foundry-store.test.mjs test/jobs.test.ts test/flow-state.test.ts",
+    "start": "node server.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.1"
+  },
+  "dependencies": {
+    "@hot-labs/near-connect": "0.12.0"
+  }
+}

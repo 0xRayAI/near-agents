@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deploy an agent on NEAR — 0xRay</title>
+  <meta name="description" content="Deploy an agent on NEAR, powered by 0xRay. Testnet only. The chain transaction is not sent." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%2304060c' width='32' height='32'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%233de0e8' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ffd166'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Black+Ops+One&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <a class="skip" href="#input-name">Skip to name</a>
+  <div class="screen">
+    <section class="stage">
+      <header class="mast">
+        <p class="stamp">Near testnet</p>
+        <h1>Deploy an agent on NEAR.</h1>
+        <p class="lede">Powered by 0xRay. Testnet only. No payment is sent.</p>
+      </header>
+      <div class="field-wrap">
+        <span class="bracket nw" aria-hidden="true"></span>
+        <span class="bracket ne" aria-hidden="true"></span>
+        <span class="bracket sw" aria-hidden="true"></span>
+        <span class="bracket se" aria-hidden="true"></span>
+        <canvas id="field" tabindex="0" role="application" aria-label="Agent. Name, account, foundry, and job." aria-describedby="field-help"></canvas>
+        <div class="grain" aria-hidden="true"></div>
+        <p class="field-state" id="field-state">Open</p>
+        <p id="node-focus" class="sr" aria-live="polite"></p>
+        <p id="field-help" class="sr">Arrow keys move among the nodes. Enter sets the open step.</p>
+      </div>
+    </section>
+    <aside class="rail" aria-label="Deploy steps">
+      <ol class="steps">
+        <li class="step is-active" data-step="name">
+          <button type="button" class="step-tab" data-select="name" aria-current="step">
+            <span class="idx">01</span>
+            <span class="lab">Name</span>
+            <span class="mark" aria-hidden="true"></span>
+            <span class="val" data-val></span>
+          </button>
+          <div class="step-body">
+            <label class="hint" for="input-name">What you will call it.</label>
+            <input id="input-name" data-field="name" maxlength="32" autocomplete="off" spellcheck="false" placeholder="agent name" />
+          </div>
+        </li>
+        <li class="step" data-step="account">
+          <button type="button" class="step-tab" data-select="account" aria-current="false">
+            <span class="idx">02</span>
+            <span class="lab">Account</span>
+            <span class="mark" aria-hidden="true"></span>
+            <span class="val" data-val></span>
+          </button>
+          <div class="step-body">
+            <p class="hint" id="account-hint">A testnet account. This page does not take a key.</p>
+            <p class="account-id" id="account-id"></p>
+            <div class="account-actions">
+              <button type="button" id="connect-wallet">Connect wallet</button>
+              <button type="button" id="disconnect-wallet" hidden>Disconnect</button>
+              <button type="button" id="check-account" hidden>Check again</button>
+            </div>
+            <p class="account-status" id="account-status" role="status"></p>
+          </div>
+        </li>
+        <li class="step" data-step="foundry">
+          <button type="button" class="step-tab" data-select="foundry" aria-current="false">
+            <span class="idx">03</span>
+            <span class="lab">Foundry</span>
+            <span class="mark" aria-hidden="true"></span>
+            <span class="val" data-val></span>
+          </button>
+          <div class="step-body">
+            <label class="hint" for="input-foundry">A short id you choose.</label>
+            <input id="input-foundry" data-field="foundry" maxlength="32" autocomplete="off" spellcheck="false" placeholder="id you choose" />
+          </div>
+        </li>
+        <li class="step" data-step="job">
+          <button type="button" class="step-tab" data-select="job" aria-current="false">
+            <span class="idx">04</span>
+            <span class="lab">Job</span>
+            <span class="mark" aria-hidden="true"></span>
+            <span class="val" data-val></span>
+          </button>
+          <div class="step-body">
+            <label class="hint" for="input-job">What it will do. No payment is sent.</label>
+            <input id="input-job" data-field="job" maxlength="80" autocomplete="off" spellcheck="false" placeholder="what it will do" />
+          </div>
+        </li>
+      </ol>
+      <button type="button" id="set-step" hidden>Set</button>
+      <div class="hold-dock">
+        <button type="button" id="hold" disabled aria-describedby="hold-help">
+          <span class="hold-label" id="hold-label">Name, then hold</span>
+          <span class="meter" id="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Hold progress"></span>
+        </button>
+      </div>
+      <p id="hold-help" class="sr">Keep Enter down for four seconds. Let go to cancel.</p>
+      <p class="rail-note" id="rail-note">Type a name.</p>
+      <div id="receipt" role="log" aria-live="polite" aria-relevant="additions">
+        <p class="quiet">The rehearsal prints here while you hold.</p>
+      </div>
+      <section id="deploy" class="deploy" hidden>
+        <p id="deploy-lead"></p>
+        <pre id="deploy-command"></pre>
+        <button type="button" id="copy-command" hidden>Copy the record</button>
+        <button type="button" id="retry-record" hidden>Sign and record</button>
+        <p class="hint" id="deploy-note"></p>
+      </section>
+      <section id="jobs" class="jobs" hidden>
+        <p class="stamp">Posted jobs</p>
+        <div id="job-list"></div>
+        <p class="hint" id="jobs-note">The USDC stays in the escrow. The wallet signs one testnet call and pays the network fee. This page does not take a key.</p>
+        <p class="account-status" id="jobs-status" role="status"></p>
+      </section>
+      <nav class="paths" aria-label="Docs and package">
+        <a href="https://docs.near.org/getting-started/faucet">Faucet</a>
+        <a href="https://docs.0xray.dev/earn">Earn</a>
+        <a href="https://docs.0xray.dev/near/reference">NEAR reference</a>
+        <a href="https://0xray.dev">0xRay</a>
+        <a href="https://www.npmjs.com/package/0xray">npm</a>
+      </nav>
+    </aside>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
