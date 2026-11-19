@@ -1,3 +1,7 @@
+import { linkLive, type StepMark } from "./field-marks.ts";
+
+export type { StepMark };
+
 export interface FieldNode {
   id: string;
   x: number;
@@ -13,8 +17,6 @@ interface Placed extends FieldNode {
 }
 
 type Dir = "left" | "right" | "up" | "down";
-
-export type StepMark = "idle" | "open" | "done";
 
 const LINKS: Array<[string, string]> = [
   ["agent", "name"],
@@ -161,6 +163,17 @@ export class FieldView {
   setSteps(marks: Record<string, StepMark>): void {
     this.marks = marks;
     if (this.reduced) this.draw(0);
+  }
+
+  setSpokes(labels: Record<string, string>): void {
+    let changed = false;
+    for (const node of this.nodes) {
+      const next = labels[node.id];
+      if (!next || node.label === next) continue;
+      node.label = next;
+      changed = true;
+    }
+    if (changed && this.reduced) this.draw(0);
   }
 
   moveFocus(dir: Dir): string {
@@ -405,9 +418,7 @@ export class FieldView {
       const a = byId.get(left);
       const b = byId.get(right);
       if (!a || !b) continue;
-      const markA = this.marks[a.id] ?? "idle";
-      const markB = this.marks[b.id] ?? "idle";
-      const hot = a.agent || b.agent || markA !== "idle" || markB !== "idle";
+      const hot = linkLive(a.id, b.id, this.marks);
       ctx.beginPath();
       ctx.moveTo(a.px, a.py);
       ctx.lineTo(b.px, b.py);
@@ -470,7 +481,7 @@ export class FieldView {
     if (node.agent) ctx.fillStyle = this.locked ? this.color("--node-core-done") : this.color("--node-core-open");
     else if (mark === "open") ctx.fillStyle = this.color("--node-core-open");
     else if (mark === "done") ctx.fillStyle = this.color("--node-core-done");
-    else ctx.fillStyle = this.color("--node-core");
+    else ctx.fillStyle = this.color("--node-idle");
     ctx.fill();
     if (focused) {
       const size = node.r + 8;
@@ -518,9 +529,10 @@ export class FieldView {
       dy = -1;
     }
     let span = ctx.measureText(node.label).width;
-    if (short && span > this.vw * 0.42 && span > 0) {
-      size = Math.max(8, Math.floor(size * (this.vw * 0.42) / span));
-      ctx.font = `600 ${size}px "IBM Plex Mono", ui-monospace, monospace`;
+    const cap = short ? this.vw * 0.42 : node.agent ? this.vw : this.vw * 0.34;
+    if (span > cap && span > 0) {
+      size = Math.max(8, Math.floor(size * cap / span));
+      ctx.font = `${weight} ${size}px "IBM Plex Mono", ui-monospace, monospace`;
       span = ctx.measureText(node.label).width;
     }
     const mark = this.marks[node.id] ?? "idle";

@@ -30,6 +30,7 @@ import { loadGigDraft, saveGigDraft, type GigDraft } from "./gig-draft.ts";
 import { gigSaveEnabled, gigSaveLabel, showGigControl } from "./gig-form.ts";
 import { gigMessage, gigPublicId } from "./gig-message.ts";
 import { drawingLabel } from "./drawing-label.ts";
+import { spokeLabel } from "./field-marks.ts";
 import { parseGigSide, parseRecordTab, type GigSide, type RecordTab } from "./record-tabs.ts";
 import { FieldView, type StepMark } from "./field.ts";
 import { createWalletSession } from "./wallet.ts";
@@ -722,6 +723,12 @@ function renderUi(): void {
     account: stepMark("account"),
     foundry: stepMark("foundry"),
     job: stepMark("job"),
+  });
+  field.setSpokes({
+    name: spokeLabel("name", state.values.name),
+    account: spokeLabel("account", state.values.account),
+    foundry: spokeLabel("foundry", state.values.foundry),
+    job: spokeLabel("job", state.values.job),
   });
   if (fieldState) {
     if (signing || gigSigning) fieldState.textContent = "Confirm in the wallet";
