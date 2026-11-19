@@ -30,6 +30,7 @@ import { loadGigDraft, saveGigDraft, type GigDraft } from "./gig-draft.ts";
 import { gigSaveEnabled, gigSaveLabel, showGigControl } from "./gig-form.ts";
 import { gigMessage, gigPublicId } from "./gig-message.ts";
 import { drawingLabel } from "./drawing-label.ts";
+import { parseGigSide, parseRecordTab, type GigSide, type RecordTab } from "./record-tabs.ts";
 import { FieldView, type StepMark } from "./field.ts";
 import { createWalletSession } from "./wallet.ts";
 
@@ -111,6 +112,8 @@ let recordsState: "idle" | "loading" | "ready" | "error" = "idle";
 let freshFoundryId = "";
 let freshGigId = "";
 let preferredFoundry = gigDraft.foundry;
+let recordTab: RecordTab = "foundries";
+let gigSide: GigSide = "opened";
 
 interface FoundryRow {
   id: string;
@@ -378,7 +381,7 @@ function setMountText(selector: string, text: string): void {
 
 function recordsStatus(connected: boolean): string {
   if (!connected) {
-    if (!walletLive) return "Connect a wallet to see foundries you created and gigs you posted.";
+    if (!walletLive) return "Connect a wallet to see foundries and gigs.";
     if (accountView === "absent") return "That account is not on testnet yet.";
     return "Checking the account on testnet.";
   }
@@ -386,11 +389,36 @@ function recordsStatus(connected: boolean): string {
   return "Loading your records.";
 }
 
+function applyRecordTabs(): void {
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-record-tab]")) {
+    button.setAttribute("aria-selected", button.dataset.recordTab === recordTab ? "true" : "false");
+  }
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-gig-side]")) {
+    const on = recordTab === "gigs" && button.dataset.gigSide === gigSide;
+    button.setAttribute("aria-selected", on ? "true" : "false");
+  }
+  for (const panel of document.querySelectorAll<HTMLElement>("[data-record-panel]")) {
+    panel.hidden = panel.dataset.recordPanel !== recordTab;
+  }
+  for (const sides of document.querySelectorAll<HTMLElement>("[data-gig-sides]")) {
+    sides.hidden = false;
+  }
+  const gigsOpen = recordTab === "gigs";
+  for (const list of document.querySelectorAll<HTMLElement>("[data-opened-list]")) {
+    list.hidden = !gigsOpen || gigSide !== "opened";
+  }
+  for (const list of document.querySelectorAll<HTMLElement>("[data-bought-list]")) {
+    list.hidden = !gigsOpen || gigSide !== "bought";
+  }
+}
+
 function renderRecords(): void {
+  applyRecordTabs();
   const account = state.values.account.trim();
   const connected = walletLive && accountView === "present";
   const foundryMounts = mounts("[data-foundry-list]");
-  const gigMounts = mounts("[data-gig-list]");
+  const openedMounts = mounts("[data-opened-list]");
+  const boughtMounts = mounts("[data-bought-list]");
   setMountText("[data-records-sub]", connected ? `Saved for ${account}.` : "");
   for (const button of document.querySelectorAll<HTMLButtonElement>("[data-records-retry]")) {
     button.hidden = recordsState !== "error";
@@ -400,13 +428,15 @@ function renderRecords(): void {
     || ((recordsState === "loading" || recordsState === "idle") && foundryRows.length === 0 && gigRows.length === 0);
   if (waiting) {
     for (const mount of foundryMounts) mount.replaceChildren();
-    for (const mount of gigMounts) mount.replaceChildren();
+    for (const mount of openedMounts) mount.replaceChildren();
+    for (const mount of boughtMounts) mount.replaceChildren();
     setMountText("[data-records-status]", recordsStatus(connected));
     return;
   }
   setMountText("[data-records-status]", "");
   for (const mount of foundryMounts) fillFoundries(mount, account);
-  for (const mount of gigMounts) fillGigs(mount, account);
+  for (const mount of openedMounts) fillOpened(mount, account);
+  for (const mount of boughtMounts) fillBought(mount);
 }
 
 function fillFoundries(mount: HTMLElement, account: string): void {
@@ -421,9 +451,10 @@ function fillFoundries(mount: HTMLElement, account: string): void {
   for (const row of foundryRows) mount.append(foundryCard(row, account));
 }
 
-function fillGigs(mount: HTMLElement, account: string): void {
+function fillOpened(mount: HTMLElement, account: string): void {
   mount.replaceChildren();
-  if (gigRows.length === 0) {
+  const rows = gigRows.filter((row) => row.account === account);
+  if (rows.length === 0) {
     const empty = document.createElement("p");
     empty.className = "hint";
     empty.textContent = foundryRows.length === 0
@@ -432,10 +463,15 @@ function fillGigs(mount: HTMLElement, account: string): void {
     mount.append(empty);
     return;
   }
-  for (const row of gigRows) {
-    if (row.account !== account) continue;
-    mount.append(gigCard(row));
-  }
+  for (const row of rows) mount.append(gigCard(row));
+}
+
+function fillBought(mount: HTMLElement): void {
+  mount.replaceChildren();
+  const empty = document.createElement("p");
+  empty.className = "hint";
+  empty.textContent = "Nothing bought yet. No payment is sent.";
+  mount.append(empty);
 }
 
 function foundryCard(row: FoundryRow, account: string): HTMLElement {
@@ -499,8 +535,8 @@ function gigCard(row: GigRow): HTMLElement {
   const note = document.createElement("p");
   note.className = "hint";
   note.textContent = freshGigId === row.id
-    ? "Signed note. Not a chain job. Just saved. No payment was sent."
-    : "Signed note. Not a chain job. No payment was sent.";
+    ? "Open. Not bought. Just saved. No payment was sent."
+    : "Open. Not bought. No payment was sent.";
   card.append(title, details, offered, note);
   const when = savedOn(row.recordedAt);
   if (when) {
@@ -1052,6 +1088,21 @@ for (const button of document.querySelectorAll<HTMLButtonElement>("[data-records
   button.addEventListener("click", () => {
     recordsFor = "";
     recordsState = "idle";
+    renderUi();
+  });
+}
+
+for (const button of document.querySelectorAll<HTMLButtonElement>("[data-record-tab]")) {
+  button.addEventListener("click", () => {
+    recordTab = parseRecordTab(button.dataset.recordTab);
+    renderUi();
+  });
+}
+
+for (const button of document.querySelectorAll<HTMLButtonElement>("[data-gig-side]")) {
+  button.addEventListener("click", () => {
+    recordTab = "gigs";
+    gigSide = parseGigSide(button.dataset.gigSide);
     renderUi();
   });
 }

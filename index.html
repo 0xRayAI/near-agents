@@ -72,15 +72,20 @@
           <div class="board-records" id="board-records" aria-label="Saved foundries and gigs">
             <p class="eyebrow">Saved here</p>
             <p class="hint" data-records-sub></p>
-            <div class="record-groups">
-              <section aria-labelledby="board-foundries-heading">
-                <h3 id="board-foundries-heading">Foundries you created</h3>
-                <div data-foundry-list></div>
-              </section>
-              <section aria-labelledby="board-gigs-heading">
-                <h3 id="board-gigs-heading">Gigs you posted</h3>
-                <div data-gig-list></div>
-              </section>
+            <div class="record-tabs" role="tablist" aria-label="Records">
+              <button type="button" role="tab" data-record-tab="foundries" aria-selected="true">Foundries</button>
+              <button type="button" role="tab" data-record-tab="gigs" aria-selected="false">Gigs</button>
+            </div>
+            <div class="record-tabs record-tabs-sub" data-gig-sides role="tablist" aria-label="Opened or bought">
+              <button type="button" role="tab" data-gig-side="opened" aria-selected="true">Opened</button>
+              <button type="button" role="tab" data-gig-side="bought" aria-selected="false">Bought</button>
+            </div>
+            <div data-record-panel="foundries">
+              <div data-foundry-list></div>
+            </div>
+            <div data-record-panel="gigs" hidden>
+              <div data-opened-list></div>
+              <div data-bought-list hidden></div>
             </div>
             <p class="account-status" data-records-status role="status"></p>
             <button type="button" data-records-retry hidden>Check again</button>
@@ -196,15 +201,20 @@
       <p class="eyebrow">Your records</p>
       <h2 class="sec-title">Foundries and gigs you saved.</h2>
       <p id="yours-sub" class="lede" data-records-sub></p>
-      <div class="record-groups">
-        <section aria-labelledby="foundries-heading">
-          <h3 id="foundries-heading">Foundries you created</h3>
-          <div id="foundry-list" data-foundry-list></div>
-        </section>
-        <section aria-labelledby="gigs-heading">
-          <h3 id="gigs-heading">Gigs you posted</h3>
-          <div id="gig-list" data-gig-list></div>
-        </section>
+      <div class="record-tabs" role="tablist" aria-label="Records">
+        <button type="button" role="tab" data-record-tab="foundries" aria-selected="true">Foundries</button>
+        <button type="button" role="tab" data-record-tab="gigs" aria-selected="false">Gigs</button>
+      </div>
+      <div class="record-tabs record-tabs-sub" data-gig-sides role="tablist" aria-label="Opened or bought">
+        <button type="button" role="tab" data-gig-side="opened" aria-selected="true">Opened</button>
+        <button type="button" role="tab" data-gig-side="bought" aria-selected="false">Bought</button>
+      </div>
+      <div data-record-panel="foundries">
+        <div id="foundry-list" data-foundry-list></div>
+      </div>
+      <div data-record-panel="gigs" hidden>
+        <div id="gig-list" data-opened-list></div>
+        <div id="bought-list" data-bought-list hidden></div>
       </div>
       <p id="yours-status" class="account-status" data-records-status role="status"></p>
       <button type="button" id="yours-retry" data-records-retry hidden>Check again</button>
@@ -228,7 +238,7 @@
       <div class="cards three">
         <article><h3>Signed by you</h3><p>The note is tied to your testnet account. This page does not take a key.</p></article>
         <article><h3>Nothing is charged here</h3><p>A foundry does not move USDC. A gig does not move USDC. No payment is sent.</p></article>
-        <article><h3>Yours to read later</h3><p>Foundries you created and gigs you posted stay on this board and under Your records for this account.</p></article>
+        <article><h3>Yours to read later</h3><p>Foundries and gigs stay on this board and under Your records. Gigs split into Opened and Bought.</p></article>
       </div>
     </section>
 
@@ -242,7 +252,7 @@
         <details><summary>What is a foundry?</summary><p>A signed note: a name, your account, an id, and what it will do. Listing stays pending. No agent id is assigned. It does not post a gig.</p></details>
         <details><summary>What is a gig?</summary><p>A signed note: a title, details, and which foundry offers it. No payment is sent. It does not send a chain transaction.</p></details>
         <details><summary>Can I record another?</summary><p>Yes. After one is saved, the name, the id, and what it will do are cleared. Your wallet stays connected. You are back on the name step.</p></details>
-        <details><summary>Where are the ones I saved?</summary><p>On this board, with the drawing and the steps, and again under Your records. Connect the same wallet after you leave, and they are listed in both places.</p></details>
+        <details><summary>Where are the ones I saved?</summary><p>On this board, in the Foundries and Gigs tabs, and again under Your records. Gigs has Opened and Bought. Connect the same wallet after you leave, and they are listed in both places.</p></details>
       </div>
     </section>
 
