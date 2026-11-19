@@ -735,3 +735,23 @@ if (nodeFocus) nodeFocus.textContent = field.focusedLabel();
 const restoredAccount = state.values.account.trim();
 if (restoredAccount) void lookupAccount(restoredAccount);
 void wallets.resume();
+
+const sheetToggle = document.querySelector<HTMLButtonElement>("#sheet-toggle");
+const sheetKey = "near-sheet";
+
+function applySheet(sheet: string): void {
+  if (sheet === "paper") document.documentElement.dataset.sheet = "paper";
+  else delete document.documentElement.dataset.sheet;
+  if (!sheetToggle) return;
+  sheetToggle.setAttribute("aria-pressed", sheet === "paper" ? "true" : "false");
+  sheetToggle.textContent = sheet === "paper" ? "Dark" : "Light";
+  sheetToggle.setAttribute("aria-label", sheet === "paper" ? "Switch to dark mode" : "Switch to light mode");
+}
+
+applySheet(localStorage.getItem(sheetKey) === "paper" ? "paper" : "board");
+
+sheetToggle?.addEventListener("click", () => {
+  const next = document.documentElement.dataset.sheet === "paper" ? "board" : "paper";
+  localStorage.setItem(sheetKey, next);
+  applySheet(next);
+});

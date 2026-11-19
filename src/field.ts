@@ -59,8 +59,57 @@ export class FieldView {
   private marks: Record<string, StepMark> = {};
   private reduced: boolean;
   private raf = 0;
+  private scale = 1;
+  private vw = 0;
+  private vh = 0;
+  private pal: Record<string, string> = {};
   private readonly media: MediaQueryList;
   private readonly onPick: (id: string) => void;
+  private readonly sheetWatch = new MutationObserver(() => {
+    this.readPalette();
+    this.draw(performance.now());
+  });
+
+  private readPalette(): void {
+    const cs = getComputedStyle(document.documentElement);
+    const names = [
+      "--sheet-bg",
+      "--sheet-grid",
+      "--sheet-grid-major",
+      "--sheet-glow",
+      "--sheet-glow-mid",
+      "--sheet-glow-far",
+      "--sheet-vignette",
+      "--sheet-vignette-0",
+      "--link-idle",
+      "--link-hot",
+      "--link-locked",
+      "--node-fill",
+      "--node-idle",
+      "--node-open",
+      "--node-done",
+      "--node-ring",
+      "--node-core",
+      "--node-core-open",
+      "--node-core-done",
+      "--agent-ring",
+      "--agent-ring-locked",
+      "--center-line",
+      "--label-ink",
+      "--label-open",
+      "--label-done",
+      "--label-idle",
+      "--label-break",
+      "--accent",
+    ];
+    const next: Record<string, string> = {};
+    for (const name of names) next[name] = cs.getPropertyValue(name).trim() || "#000000";
+    this.pal = next;
+  }
+
+  private color(name: string): string {
+    return this.pal[name] ?? "#000000";
+  }
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -76,7 +125,11 @@ export class FieldView {
       this.draw(0);
     });
     this.bind();
-    void document.fonts.ready.then(() => this.draw(0));
+    this.readPalette();
+    void document.fonts.ready.then(() => {
+      this.readPalette();
+      this.draw(0);
+    });
     this.draw(0);
     if (!this.reduced) this.start();
   }
@@ -151,6 +204,10 @@ export class FieldView {
   }
 
   private bind(): void {
+    this.sheetWatch.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-sheet"],
+    });
     const resize = new ResizeObserver(() => this.draw(performance.now()));
     resize.observe(this.canvas);
 
@@ -258,21 +315,38 @@ export class FieldView {
       this.canvas.height = height;
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.vw = w;
+    this.vh = h;
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#04060c";
+    ctx.fillStyle = this.color("--sheet-bg");
     ctx.fillRect(0, 0, w, h);
 
     const leanX = !this.reduced && this.pointer.inside ? (this.pointer.x / w - 0.5) * 10 : 0;
     const leanY = !this.reduced && this.pointer.inside ? (this.pointer.y / h - 0.5) * 8 : 0;
-    ctx.strokeStyle = "rgba(22, 78, 88, 0.55)";
+    const gap = 21;
     ctx.lineWidth = 1;
+    ctx.strokeStyle = this.color("--sheet-grid");
     ctx.beginPath();
-    const gap = 42;
-    for (let x = -gap; x <= w + gap; x += gap) {
+    for (let x = -gap, i = 0; x <= w + gap; x += gap, i += 1) {
+      if (i % 4 === 0) continue;
       ctx.moveTo(x + leanX, -gap);
       ctx.lineTo(x + leanX, h + gap);
     }
-    for (let y = -gap; y <= h + gap; y += gap) {
+    for (let y = -gap, i = 0; y <= h + gap; y += gap, i += 1) {
+      if (i % 4 === 0) continue;
+      ctx.moveTo(-gap, y + leanY);
+      ctx.lineTo(w + gap, y + leanY);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = this.color("--sheet-grid-major");
+    ctx.beginPath();
+    for (let x = -gap, i = 0; x <= w + gap; x += gap, i += 1) {
+      if (i % 4 !== 0) continue;
+      ctx.moveTo(x + leanX, -gap);
+      ctx.lineTo(x + leanX, h + gap);
+    }
+    for (let y = -gap, i = 0; y <= h + gap; y += gap, i += 1) {
+      if (i % 4 !== 0) continue;
       ctx.moveTo(-gap, y + leanY);
       ctx.lineTo(w + gap, y + leanY);
     }
@@ -288,9 +362,9 @@ export class FieldView {
         this.pointer.y,
         radius,
       );
-      glow.addColorStop(0, "rgba(61, 224, 232, 0.16)");
-      glow.addColorStop(0.45, "rgba(61, 224, 232, 0.04)");
-      glow.addColorStop(1, "rgba(4, 6, 12, 0)");
+      glow.addColorStop(0, this.color("--sheet-glow"));
+      glow.addColorStop(0.45, this.color("--sheet-glow-mid"));
+      glow.addColorStop(1, this.color("--sheet-glow-far"));
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, w, h);
     }
@@ -303,25 +377,27 @@ export class FieldView {
       h * 0.48,
       Math.max(w, h) * 0.72,
     );
-    shade.addColorStop(0, "rgba(4, 6, 12, 0)");
-    shade.addColorStop(1, "rgba(4, 6, 12, 0.66)");
+    shade.addColorStop(0, this.color("--sheet-vignette-0"));
+    shade.addColorStop(1, this.color("--sheet-vignette"));
     ctx.fillStyle = shade;
     ctx.fillRect(0, 0, w, h);
 
     const tighten = this.reduced ? 0 : this.tighten;
+    const scale = Math.min(1.25, Math.max(0.72, Math.min(w, h) / 420));
+    this.scale = scale;
     this.placed = this.nodes.map((node) => {
       let x = node.x * w;
       let y = node.y * h;
       const dragging = this.drag?.id === node.id;
       if (!this.reduced && !dragging) {
-        x += Math.sin(time * 0.001 + node.x * 12) * 3.2;
-        y += Math.cos(time * 0.0012 + node.y * 10) * 2.4;
+        x += Math.sin(time * 0.001 + node.x * 12) * 3.2 * scale;
+        y += Math.cos(time * 0.0012 + node.y * 10) * 2.4 * scale;
       }
       if (tighten > 0 && !dragging) {
         x += (w * 0.5 - x) * tighten * 0.2;
         y += (h * 0.54 - y) * tighten * 0.2;
       }
-      return { ...node, px: x, py: y };
+      return { ...node, px: x, py: y, r: node.r * scale };
     });
 
     const byId = new Map(this.placed.map((node) => [node.id, node]));
@@ -337,11 +413,13 @@ export class FieldView {
       ctx.lineTo(b.px, b.py);
       ctx.strokeStyle = hot
         ? this.locked
-          ? "rgba(61, 224, 232, 0.9)"
-          : "rgba(61, 224, 232, 0.55)"
-        : "rgba(22, 78, 88, 0.95)";
+          ? this.color("--link-locked")
+          : this.color("--link-hot")
+        : this.color("--link-idle");
       ctx.lineWidth = hot ? 1.4 : 1;
+      ctx.setLineDash(hot ? [] : [5, 4]);
       ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     for (const node of this.placed) this.drawNode(ctx, node);
@@ -355,37 +433,49 @@ export class FieldView {
     if (node.agent) {
       ctx.beginPath();
       ctx.arc(0, 0, node.r + 10, 0, Math.PI * 2);
-      ctx.strokeStyle = this.locked ? "rgba(61, 224, 232, 0.35)" : "rgba(255, 209, 102, 0.28)";
+      ctx.strokeStyle = this.locked
+        ? this.color("--agent-ring-locked")
+        : this.color("--agent-ring");
       ctx.lineWidth = 1;
       ctx.stroke();
+      ctx.beginPath();
+      ctx.setLineDash([9, 4, 2, 4]);
+      ctx.strokeStyle = this.color("--center-line");
+      ctx.lineWidth = 1;
+      ctx.moveTo(-(node.r + 26), 0);
+      ctx.lineTo(node.r + 26, 0);
+      ctx.moveTo(0, -(node.r + 26));
+      ctx.lineTo(0, node.r + 26);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
     ctx.beginPath();
     ctx.arc(0, 0, node.r, 0, Math.PI * 2);
-    ctx.fillStyle = "#080c14";
+    ctx.fillStyle = this.color("--node-fill");
     ctx.fill();
     const mark = this.marks[node.id] ?? "idle";
     ctx.lineWidth = node.agent || mark === "open" ? 2 : 1.25;
-    if (node.agent && this.locked) ctx.strokeStyle = "#3de0e8";
-    else if (node.agent || mark === "open") ctx.strokeStyle = "#ffd166";
-    else if (mark === "done") ctx.strokeStyle = "#3de0e8";
-    else ctx.strokeStyle = "#5c6066";
+    if (node.agent && this.locked) ctx.strokeStyle = this.color("--node-done");
+    else if (node.agent || mark === "open") ctx.strokeStyle = this.color("--node-open");
+    else if (mark === "done") ctx.strokeStyle = this.color("--node-done");
+    else ctx.strokeStyle = this.color("--node-idle");
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(0, 0, Math.max(4, node.r - 6), 0, Math.PI * 2);
-    ctx.strokeStyle = "#242628";
+    ctx.strokeStyle = this.color("--node-ring");
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(0, 0, node.agent ? 4 : 2.4, 0, Math.PI * 2);
-    if (node.agent) ctx.fillStyle = this.locked ? "#3de0e8" : "#ffd166";
-    else if (mark === "open") ctx.fillStyle = "#ffd166";
-    else if (mark === "done") ctx.fillStyle = "#3de0e8";
-    else ctx.fillStyle = "#58d2b4";
+    if (node.agent) ctx.fillStyle = this.locked ? this.color("--node-core-done") : this.color("--node-core-open");
+    else if (mark === "open") ctx.fillStyle = this.color("--node-core-open");
+    else if (mark === "done") ctx.fillStyle = this.color("--node-core-done");
+    else ctx.fillStyle = this.color("--node-core");
     ctx.fill();
     if (focused) {
       const size = node.r + 8;
       const arm = 7;
-      ctx.strokeStyle = "#ffd166";
+      ctx.strokeStyle = this.color("--accent");
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(-size, -size + arm);
@@ -406,17 +496,40 @@ export class FieldView {
   }
 
   private drawLabel(ctx: CanvasRenderingContext2D, node: Placed): void {
-    ctx.font = "500 16px 'Barlow Condensed', sans-serif";
+    const px = Math.round(13 * this.scale);
+    const ps = Math.round(12 * this.scale);
+    ctx.font = node.agent
+      ? `600 ${px}px 'IBM Plex Mono', ui-monospace, monospace`
+      : `500 ${ps}px 'IBM Plex Mono', ui-monospace, monospace`;
     ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    const y = node.py + node.r + 8;
+    ctx.textBaseline = "middle";
+    const agent = this.placed.find((item) => item.agent);
+    let dx = 0;
+    let dy = 1;
+    if (agent && !node.agent) {
+      const vx = node.px - agent.px;
+      const vy = node.py - agent.py;
+      const len = Math.hypot(vx, vy) || 1;
+      dx = vx / len;
+      dy = vy / len;
+    }
+    const off = node.r + (node.agent ? 20 : 12) * this.scale;
     const mark = this.marks[node.id] ?? "idle";
-    ctx.fillStyle = "#0c0e10";
-    ctx.fillText(node.label, node.px + 1, y + 1);
-    if (node.agent) ctx.fillStyle = "#eceeec";
-    else if (mark === "open") ctx.fillStyle = "#ffd166";
-    else if (mark === "done") ctx.fillStyle = "#3de0e8";
-    else ctx.fillStyle = "#a8b2bc";
-    ctx.fillText(node.label, node.px, y);
+    const span = ctx.measureText(node.label).width;
+    const box = Math.round(17 * this.scale);
+    const half = Math.abs(dx) * (span / 2 + 4) + Math.abs(dy) * (box / 2);
+    let cx = node.px + dx * (off + half + 3);
+    let cy = node.py + dy * (off + half + 3);
+    cx = Math.min(Math.max(cx, span / 2 + 6), this.vw - span / 2 - 6);
+    cy = Math.min(Math.max(cy, box / 2 + 3), this.vh - box / 2 - 3);
+    ctx.fillStyle = this.color("--label-break");
+    ctx.fillRect(cx - span / 2 - 4, cy - box / 2, span + 8, box);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    ctx.fillText(node.label, cx + 1, cy + 1);
+    if (node.agent) ctx.fillStyle = this.color("--label-ink");
+    else if (mark === "open") ctx.fillStyle = this.color("--label-open");
+    else if (mark === "done") ctx.fillStyle = this.color("--label-done");
+    else ctx.fillStyle = this.color("--label-idle");
+    ctx.fillText(node.label, cx, cy);
   }
 }
