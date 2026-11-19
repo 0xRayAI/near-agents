@@ -27,16 +27,20 @@
     </nav>
     <details class="nav-menu">
       <summary>Menu</summary>
-      <a href="#how">How it works</a>
-      <a href="#why">Why NEAR</a>
-      <a href="#faq">FAQ</a>
-      <a href="#yours">Your records</a>
+      <div class="nav-panel">
+        <p class="nav-account" hidden></p>
+        <button type="button" class="nav-disconnect" hidden>Disconnect</button>
+        <a href="#how">How it works</a>
+        <a href="#why">Why NEAR</a>
+        <a href="#faq">FAQ</a>
+        <a href="#yours">Your records</a>
+      </div>
     </details>
     <div class="nav-actions">
       <p id="nav-account" class="nav-account" hidden></p>
-      <button type="button" id="nav-disconnect" hidden>Disconnect</button>
+      <button type="button" id="nav-disconnect" class="nav-disconnect" hidden>Disconnect</button>
       <button type="button" id="sheet-toggle" class="sheet-toggle" aria-pressed="false" aria-label="Switch to light mode">Light</button>
-      <a class="btn btn-primary" id="nav-new" href="#deck">New foundry</a>
+      <a class="btn btn-primary" id="nav-new" href="#input-name">New foundry</a>
     </div>
   </header>
 
@@ -44,53 +48,15 @@
     <section class="hero">
       <p class="pill"><span class="dot" aria-hidden="true"></span>Live on NEAR testnet · free to try</p>
       <h1>Record a foundry. <span class="hl">Post a gig as a note.</span></h1>
-      <p class="lede">Name it, connect once, and sign with your wallet. Testnet only. No payment is sent. Listing stays pending.</p>
+      <p class="lede">A foundry is a signed note: a name, an id, and what it will do. Connect a testnet wallet and sign. No payment is sent.</p>
       <div class="hero-cta">
-        <a class="btn btn-primary" href="#deck">Start a foundry <span aria-hidden="true">→</span></a>
+        <a class="btn btn-primary" href="#input-name">Start a foundry <span aria-hidden="true">→</span></a>
         <a class="btn btn-ghost" href="#how">See how it works</a>
       </div>
-      <ul class="trust" aria-label="Guarantees">
-        <li><b>0</b> payment sent</li>
-        <li><b>4</b> simple steps</li>
-        <li><b>100%</b> your wallet signs</li>
-      </ul>
     </section>
 
     <section class="deck" id="deck" aria-label="Agent deck">
       <div class="screen">
-        <section class="stage">
-          <div class="stage-head">
-            <p class="eyebrow" id="stage-eyebrow">Your foundry</p>
-            <p class="field-state" id="field-state">Open</p>
-          </div>
-          <div class="field-wrap">
-            <canvas id="field" tabindex="0" role="application" aria-label="Foundry. Name, account, foundry, and what it will do." aria-describedby="field-help"></canvas>
-            <p id="node-focus" class="sr" aria-live="polite"></p>
-            <p id="field-help" class="sr">Arrow keys move among the nodes. Enter sets the open step.</p>
-          </div>
-          <p class="fig" id="field-caption">The drawing fills in as you complete each step.</p>
-          <div class="board-records" id="board-records" aria-label="Saved foundries and gigs">
-            <p class="eyebrow">Saved here</p>
-            <p class="hint" data-records-sub></p>
-            <div class="record-tabs" role="tablist" aria-label="Records">
-              <button type="button" role="tab" data-record-tab="foundries" aria-selected="true">Foundries</button>
-              <button type="button" role="tab" data-record-tab="gigs" aria-selected="false">Gigs</button>
-            </div>
-            <div class="record-tabs record-tabs-sub" data-gig-sides role="tablist" aria-label="Opened or bought">
-              <button type="button" role="tab" data-gig-side="opened" aria-selected="true">Opened</button>
-              <button type="button" role="tab" data-gig-side="bought" aria-selected="false">Bought</button>
-            </div>
-            <div data-record-panel="foundries">
-              <div data-foundry-list></div>
-            </div>
-            <div data-record-panel="gigs" hidden>
-              <div data-opened-list></div>
-              <div data-bought-list hidden></div>
-            </div>
-            <p class="account-status" data-records-status role="status"></p>
-            <button type="button" data-records-retry hidden>Check again</button>
-          </div>
-        </section>
         <aside class="rail" id="rail" aria-label="Deploy steps">
           <div class="rail-head">
             <h2 id="rail-title">New foundry</h2>
@@ -119,7 +85,7 @@
                 <span class="mark" aria-hidden="true"></span><span class="val" data-val></span>
               </button>
               <div class="step-body">
-                <label class="hint" for="input-name">Pick something memorable.</label>
+                <label class="hint" for="input-name">The name people will see.</label>
                 <div class="entry">
                   <input id="input-name" data-field="name" maxlength="32" autocomplete="off" spellcheck="false" placeholder="e.g. orbitscout" />
                   <button type="button" class="next-step" data-next aria-label="Next step" aria-disabled="true"><span aria-hidden="true">→</span></button>
@@ -149,7 +115,7 @@
                 <span class="mark" aria-hidden="true"></span><span class="val" data-val></span>
               </button>
               <div class="step-body">
-                <label class="hint" for="input-foundry">Letters and numbers. The saved id starts with a letter.</label>
+                <label class="hint" for="input-foundry">Short id. Start with a letter. This is how it is saved.</label>
                 <div class="entry">
                   <input id="input-foundry" data-field="foundry" maxlength="32" autocomplete="off" spellcheck="false" placeholder="e.g. orbitworks" />
                   <button type="button" class="next-step" data-next aria-label="Next step" aria-disabled="true"><span aria-hidden="true">→</span></button>
@@ -184,7 +150,7 @@
           </form>
           <div class="hold-dock" id="hold-dock">
             <button type="button" id="hold" disabled aria-describedby="hold-help">
-              <span class="hold-label" id="hold-label">Name, then hold</span>
+              <span class="hold-label" id="hold-label">Type a name</span>
               <span class="meter" id="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Hold progress"></span>
             </button>
           </div>
@@ -194,8 +160,48 @@
             <p class="quiet">Press and hold. A preview prints here.</p>
           </div>
         </aside>
+        <section class="stage">
+          <div class="stage-head">
+            <p class="eyebrow" id="stage-eyebrow">Your foundry</p>
+            <p class="field-state" id="field-state">Open</p>
+          </div>
+          <div class="field-wrap">
+            <canvas id="field" tabindex="0" role="application" aria-label="Foundry. Name, account, foundry, and what it will do." aria-describedby="field-help"></canvas>
+            <p id="node-focus" class="sr" aria-live="polite"></p>
+            <p id="field-help" class="sr">Arrow keys move among the nodes. Enter moves to the open step.</p>
+          </div>
+          <p class="fig" id="field-caption">The drawing fills in as you complete each step.</p>
+        </section>
+        <div class="board-records" id="board-records" aria-label="Saved foundries and gigs">
+          <p class="eyebrow">Saved here</p>
+          <p class="hint" data-records-sub></p>
+          <div class="record-tabs" role="tablist" aria-label="Records">
+            <button type="button" role="tab" data-record-tab="foundries" aria-selected="true">Foundries</button>
+            <button type="button" role="tab" data-record-tab="gigs" aria-selected="false">Gigs</button>
+          </div>
+          <div class="record-tabs record-tabs-sub" data-gig-sides hidden role="tablist" aria-label="Opened or bought">
+            <button type="button" role="tab" data-gig-side="opened" aria-selected="false">Opened</button>
+            <button type="button" role="tab" data-gig-side="bought" aria-selected="false">Bought</button>
+          </div>
+          <p class="hint" data-gig-note hidden>Opened is a gig you posted. Bought stays empty because this page does not take payment.</p>
+          <div data-record-panel="foundries">
+            <div data-foundry-list></div>
+          </div>
+          <div data-record-panel="gigs" hidden>
+            <div data-opened-list></div>
+            <div data-bought-list hidden></div>
+          </div>
+          <p class="account-status" data-records-status role="status"></p>
+          <button type="button" data-records-retry hidden>Check again</button>
+        </div>
       </div>
     </section>
+
+    <ul class="trust" aria-label="Guarantees">
+      <li><b>0</b> payment sent</li>
+      <li><b>4</b> simple steps</li>
+      <li><b>100%</b> your wallet signs</li>
+    </ul>
 
     <section class="section" id="yours">
       <p class="eyebrow">Your records</p>
@@ -205,10 +211,11 @@
         <button type="button" role="tab" data-record-tab="foundries" aria-selected="true">Foundries</button>
         <button type="button" role="tab" data-record-tab="gigs" aria-selected="false">Gigs</button>
       </div>
-      <div class="record-tabs record-tabs-sub" data-gig-sides role="tablist" aria-label="Opened or bought">
-        <button type="button" role="tab" data-gig-side="opened" aria-selected="true">Opened</button>
+      <div class="record-tabs record-tabs-sub" data-gig-sides hidden role="tablist" aria-label="Opened or bought">
+        <button type="button" role="tab" data-gig-side="opened" aria-selected="false">Opened</button>
         <button type="button" role="tab" data-gig-side="bought" aria-selected="false">Bought</button>
       </div>
+      <p class="hint" data-gig-note hidden>Opened is a gig you posted. Bought stays empty because this page does not take payment.</p>
       <div data-record-panel="foundries">
         <div id="foundry-list" data-foundry-list></div>
       </div>
@@ -258,7 +265,7 @@
 
     <section class="cta-band">
       <h2 id="cta-title">Ready to record a foundry?</h2>
-      <a class="btn btn-primary" id="cta-go" href="#deck">New foundry <span aria-hidden="true">→</span></a>
+      <a class="btn btn-primary" id="cta-go" href="#input-name">New foundry <span aria-hidden="true">→</span></a>
     </section>
   </main>
 

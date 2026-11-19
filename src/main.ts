@@ -74,9 +74,6 @@ const gigFoundry = document.querySelector<HTMLSelectElement>("#gig-foundry");
 const gigSave = document.querySelector<HTMLButtonElement>("#gig-save");
 const gigStatus = document.querySelector<HTMLElement>("#gig-status");
 const foundryShell = document.querySelector<HTMLElement>("#foundry-shell");
-const stageEl = document.querySelector<HTMLElement>(".stage");
-const navAccount = document.querySelector<HTMLElement>("#nav-account");
-const navDisconnect = document.querySelector<HTMLButtonElement>("#nav-disconnect");
 const fieldCaption = document.querySelector<HTMLElement>("#field-caption");
 const railTitle = document.querySelector<HTMLElement>("#rail-title");
 const ctaTitle = document.querySelector<HTMLElement>("#cta-title");
@@ -95,7 +92,9 @@ let painted = "";
 let connecting = false;
 let pointerDown = false;
 let accountView: AccountView = "idle";
+let accountChecking = false;
 let accountNear = "";
+let holdCanceled = false;
 let lookupGen = 0;
 let signing = false;
 let gigSigning = false;
@@ -154,20 +153,23 @@ function accountLine(): string {
     return `On testnet. ${figure}.`;
   }
   if (accountView === "absent") {
-    return "That account is not on testnet yet. Create it in the wallet, then fund it from the faucet.";
+    return "That account is not on testnet yet. Create it in the wallet, fund it from the faucet, then press Check again.";
   }
-  if (accountView === "unknown") return "The account check did not answer.";
+  if (accountChecking) return "Checking the account on testnet.";
+  if (accountView === "unknown") return "The account check did not answer. Press Check again.";
   return "";
 }
 
 async function lookupAccount(id: string): Promise<void> {
   const gen = ++lookupGen;
+  accountChecking = true;
   accountView = "unknown";
   accountNear = "";
   sayAccount("Checking the account on testnet.");
   renderUi();
   const read = await readTestnetAccount(id);
   if (gen !== lookupGen) return;
+  accountChecking = false;
   accountView = read.view;
   accountNear = read.near;
   sayAccount(accountLine());
@@ -186,6 +188,7 @@ const wallets = createWalletSession((id) => {
   accountNear = "";
   if (!id) {
     lookupGen += 1;
+    accountChecking = false;
     sayAccount("");
     renderUi();
     return;
@@ -383,6 +386,8 @@ function recordsStatus(connected: boolean): string {
   if (!connected) {
     if (!walletLive) return "Connect a wallet to see foundries and gigs.";
     if (accountView === "absent") return "That account is not on testnet yet.";
+    if (accountChecking) return "Checking the account on testnet.";
+    if (accountView === "unknown") return "The account check did not answer. Press Check again.";
     return "Checking the account on testnet.";
   }
   if (recordsState === "error") return "Your records did not load. Your wallet is still connected.";
@@ -401,7 +406,11 @@ function applyRecordTabs(): void {
     panel.hidden = panel.dataset.recordPanel !== recordTab;
   }
   for (const sides of document.querySelectorAll<HTMLElement>("[data-gig-sides]")) {
-    sides.hidden = false;
+    sides.hidden = recordTab !== "gigs";
+  }
+  const noteReady = recordTab === "gigs" && walletLive && accountView === "present" && recordsState === "ready";
+  for (const note of document.querySelectorAll<HTMLElement>("[data-gig-note]")) {
+    note.hidden = !noteReady;
   }
   const gigsOpen = recordTab === "gigs";
   for (const list of document.querySelectorAll<HTMLElement>("[data-opened-list]")) {
@@ -577,6 +586,15 @@ function renderGig(): void {
   const selected = gigFoundry.value;
   const keep = preferredFoundry || selected || gigDraft.foundry;
   gigFoundry.replaceChildren();
+  if (owned.length === 0) {
+    const empty = document.createElement("option");
+    empty.value = "";
+    if (!walletLive) empty.textContent = "Connect a wallet to choose a foundry.";
+    else if (recordsState === "ready") empty.textContent = "Save a foundry first.";
+    else if (recordsState === "error") empty.textContent = "Your records did not load.";
+    else empty.textContent = "Loading your records.";
+    gigFoundry.append(empty);
+  }
   for (const row of owned) {
     const option = document.createElement("option");
     option.value = row.id;
@@ -594,6 +612,7 @@ function renderGig(): void {
     foundryId: gigFoundry.value,
     signing: gigSigning,
     loading: walletLive && accountView === "present" && recordsState !== "ready" && recordsState !== "error",
+    loadError: walletLive && accountView === "present" && recordsState === "error",
   });
   gigSave.textContent = label;
   gigSave.disabled = gigSigning || !gigSaveEnabled(label);
@@ -627,7 +646,8 @@ function renderUi(): void {
     tab?.setAttribute("aria-disabled", canOpen(state, step) ? "false" : "true");
     const next = item.querySelector<HTMLButtonElement>("[data-next]");
     if (next) {
-      const ready = state.active === step && continuation(state) !== null;
+      const blocked = step === "account" && accountView !== "present";
+      const ready = state.active === step && continuation(state) !== null && !blocked;
       next.setAttribute("aria-disabled", ready ? "false" : "true");
     }
     const val = item.querySelector<HTMLElement>("[data-val]");
@@ -646,10 +666,11 @@ function renderUi(): void {
   holdBtn.classList.toggle("is-hot", holding);
   holdBtn.classList.toggle("is-done", rehearsed);
   if (signing) holdLabel.textContent = "Confirm in the wallet";
-  else if (holding || rehearsed || armed) holdLabel.textContent = holdCue(state);
-  else if (canHold(state) && accountView !== "present") holdLabel.textContent = "Account, then hold";
-  else if (canHold(state) && idAlreadySaved()) holdLabel.textContent = "Foundry, then hold";
-  else if (canHold(state) && foundryId().length === 0) holdLabel.textContent = "Foundry, then hold";
+  else if (holding || rehearsed) holdLabel.textContent = holdCue(state);
+  else if (holdCanceled) holdLabel.textContent = "Let go canceled it. Hold again for 4 seconds.";
+  else if (idAlreadySaved()) holdLabel.textContent = "Type a different id.";
+  else if (canHold(state) && foundryId().length === 0) holdLabel.textContent = "Type an id";
+  else if (canHold(state) && accountView !== "present") holdLabel.textContent = "Connect a wallet";
   else holdLabel.textContent = holdCue(state);
 
   if (!holding) {
@@ -677,22 +698,25 @@ function renderUi(): void {
     disconnectBtn.hidden = !walletLive;
     disconnectBtn.disabled = holding || connecting || signing || gigSigning;
   }
-  if (navAccount) {
-    navAccount.hidden = !walletLive || !hasAccount;
-    navAccount.textContent = hasAccount ? state.values.account.trim() : "";
+  for (const node of document.querySelectorAll<HTMLElement>(".nav-account")) {
+    node.hidden = !walletLive || !hasAccount;
+    node.textContent = hasAccount ? state.values.account.trim() : "";
   }
-  if (navDisconnect) {
-    navDisconnect.hidden = !walletLive;
-    navDisconnect.disabled = holding || connecting || signing || gigSigning;
+  for (const node of document.querySelectorAll<HTMLButtonElement>(".nav-disconnect")) {
+    node.hidden = !walletLive;
+    node.disabled = holding || connecting || signing || gigSigning;
   }
   if (checkBtn) {
     checkBtn.hidden = !hasAccount || accountView === "present" || accountView === "idle";
-    checkBtn.disabled = holding || connecting;
+    checkBtn.disabled = holding || connecting || accountChecking;
   }
 
   const savedOnBoard = walletLive && accountView === "present" && (foundryRows.length > 0 || gigRows.length > 0);
-  stageEl?.classList.toggle("has-records", savedOnBoard);
-  field.setAgentLabel(drawingLabel(state.values.name, savedOnBoard ? (foundryRows.length || gigRows.length) : 0));
+  field.setAgentLabel(drawingLabel(
+    state.values.name,
+    savedOnBoard ? foundryRows.length : 0,
+    savedOnBoard ? gigRows.length : 0,
+  ));
   field.setSteps({
     name: stepMark("name"),
     account: stepMark("account"),
@@ -708,9 +732,11 @@ function renderUi(): void {
     if (signing) {
       railNote.textContent = "Confirm the foundry in the wallet.";
     } else if (!holding && !rehearsed && canHold(state) && accountView === "absent") {
-      railNote.textContent = "That account is not on testnet yet.";
+      railNote.textContent = "That account is not on testnet yet. Create it in the wallet, fund it from the faucet, then press Check again.";
+    } else if (!holding && !rehearsed && canHold(state) && accountChecking) {
+      railNote.textContent = "Checking the account on testnet.";
     } else if (!holding && !rehearsed && canHold(state) && accountView !== "present") {
-      railNote.textContent = "The account check did not answer.";
+      railNote.textContent = "The account check did not answer. Press Check again.";
     } else if (!holding && !rehearsed && idAlreadySaved()) {
       railNote.textContent = "You already saved this id. Type a different one.";
     } else if (!holding && !rehearsed && canHold(state) && foundryId().length === 0) {
@@ -784,6 +810,10 @@ function tryFinish(): void {
 
 function continueDeck(): void {
   commitField();
+  if (state.active === "account" && accountView !== "present") {
+    focusStep("account");
+    return;
+  }
   const move = continuation(state);
   if (move === "finish") {
     tryFinish();
@@ -833,6 +863,7 @@ function focusStep(step: StepId): void {
 
 function startHold(): void {
   if (state.phase === "holding" || !readyToHold()) return;
+  holdCanceled = false;
   const gen = ++holdGen;
   state = beginHold(state);
   const started = performance.now();
@@ -858,6 +889,7 @@ function startHold(): void {
 
 function endHold(): void {
   if (state.phase !== "holding") return;
+  holdCanceled = true;
   holdGen += 1;
   state = cancelHold(state);
   field.setTighten(0);
@@ -899,6 +931,7 @@ disconnectBtn?.addEventListener("click", () => {
     () => {
       connecting = false;
       accountView = "idle";
+      accountChecking = false;
       accountNear = "";
       sayAccount("Disconnected. The account is no longer on this page.");
       renderUi();
@@ -1082,7 +1115,9 @@ modeFoundryBtn?.addEventListener("click", () => setMode("foundry"));
 modeGigBtn?.addEventListener("click", () => setMode("gig"));
 document.querySelector("#nav-new")?.addEventListener("click", () => setMode("foundry"));
 document.querySelector("#cta-go")?.addEventListener("click", () => setMode("foundry"));
-navDisconnect?.addEventListener("click", () => disconnectBtn?.click());
+for (const button of document.querySelectorAll<HTMLButtonElement>(".nav-disconnect")) {
+  button.addEventListener("click", () => disconnectBtn?.click());
+}
 
 for (const button of document.querySelectorAll<HTMLButtonElement>("[data-records-retry]")) {
   button.addEventListener("click", () => {
@@ -1133,6 +1168,12 @@ gigSave?.addEventListener("click", () => {
     setMode("foundry");
     return;
   }
+  if (label === "Check again") {
+    recordsFor = "";
+    recordsState = "idle";
+    renderUi();
+    return;
+  }
   void saveGig();
 });
 
@@ -1146,6 +1187,7 @@ document.querySelectorAll<HTMLAnchorElement>(".nav-menu a").forEach((link) => {
 document.querySelectorAll<HTMLInputElement>("[data-field]").forEach((input) => {
   input.addEventListener("input", () => {
     if (!isStep(input.dataset.field)) return;
+    holdCanceled = false;
     state = setValue(state, input.dataset.field, input.value);
     if (state.phase === "edit") deployError = "";
     renderUi();
@@ -1216,11 +1258,7 @@ canvas.addEventListener("keydown", (event) => {
   }
   if (event.key !== "Enter") return;
   event.preventDefault();
-  if (continuation(state)) {
-    continueDeck();
-    return;
-  }
-  if (!holdBtn.disabled) holdBtn.focus();
+  focusStep(state.active);
 });
 
 const saved = loadFlow(localStorage);

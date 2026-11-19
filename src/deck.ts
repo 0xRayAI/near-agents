@@ -181,19 +181,19 @@ export function completeHold(state: DeckState): DeckState {
   };
 }
 
-const STEP_LABEL: Record<StepId, string> = {
-  name: "Name",
-  account: "Account",
-  foundry: "Foundry",
-  job: "Job",
+const NEXT_ACT: Record<StepId, string> = {
+  name: "Type a name",
+  account: "Connect a wallet",
+  foundry: "Type an id",
+  job: "Say what it will do.",
 };
 
 export function holdCue(state: DeckState): string {
-  if (state.phase === "holding") return "Holding";
+  if (state.phase === "holding") return "Keep holding.";
   if (state.phase === "rehearsed") return "Nothing was sent";
-  if (canHold(state)) return "Hold to record";
+  if (canHold(state)) return "Hold for 4 seconds.";
   const missing = STEPS.find((step) => !state.done.includes(step)) ?? "name";
-  return `${STEP_LABEL[missing]}, then hold`;
+  return NEXT_ACT[missing];
 }
 
 export function railStatus(state: DeckState, reducedMotion: boolean): string {
@@ -215,6 +215,6 @@ export function railStatus(state: DeckState, reducedMotion: boolean): string {
 
 export function fieldStatus(state: DeckState): string {
   if (state.phase === "holding") return "Holding";
-  if (state.phase === "rehearsed") return "Nothing was sent";
-  return "Open";
+  if (state.phase === "rehearsed") return "Saved";
+  return "In progress";
 }

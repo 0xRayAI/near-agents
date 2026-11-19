@@ -112,12 +112,19 @@ test("enter moves on from a step that is already set", () => {
   assert.equal(continuation(createDeck()), null);
 });
 
-test("the hold cue names the open step", () => {
+test("the hold cue names the next act", () => {
   const start = createDeck();
-  assert.equal(holdCue(start), "Name, then hold");
+  assert.equal(holdCue(start), "Type a name");
   assert.equal(railStatus(start, false), "Type a name.");
+  let state = finish(setValue(start, "name", "Keeper"));
+  assert.equal(holdCue(state), "Connect a wallet");
+  state = finish(setValue(state, "account", "alpha.testnet"));
+  assert.equal(holdCue(state), "Type an id");
+  state = finish(setValue(state, "foundry", "desk"));
+  assert.equal(holdCue(state), "Say what it will do.");
   const armed = arm();
-  assert.equal(holdCue(armed), "Hold to record");
+  assert.equal(holdCue(armed), "Hold for 4 seconds.");
+  assert.equal(holdCue(beginHold(armed)), "Keep holding.");
   assert.equal(railStatus(beginHold(armed), false), "Holding. Let go to cancel.");
   assert.equal(holdCue(completeHold(beginHold(armed))), "Nothing was sent");
 });

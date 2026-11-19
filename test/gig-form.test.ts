@@ -36,6 +36,21 @@ test("the gig control follows the open fields", () => {
   }), "Confirm in the wallet");
 });
 
+test("a failed record load asks to check again", () => {
+  const failed = {
+    connected: true,
+    title: "Summarize",
+    details: "Read the notes.",
+    ownedCount: 0,
+    foundryId: "",
+    signing: false,
+    loadError: true,
+  };
+  assert.equal(gigSaveLabel(failed), "Check again");
+  assert.equal(gigSaveEnabled("Check again"), true);
+  assert.equal(gigSaveLabel({ ...failed, title: "", details: "", loadError: false }), "Add a title");
+});
+
 test("a foundry this account does not own has no gig control", () => {
   assert.equal(showGigControl("ada.testnet", "ada.testnet"), true);
   assert.equal(showGigControl("ada.testnet", "bea.testnet"), false);

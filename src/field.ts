@@ -217,7 +217,6 @@ export class FieldView {
       const point = this.local(event);
       this.pointer = { x: point.x, y: point.y, inside: true };
       this.dragMoved = false;
-      this.canvas.style.touchAction = "none";
       const hit = this.hit(point.x, point.y);
       if (hit && point.w > 0 && point.h > 0) {
         const node = this.nodes.find((item) => item.id === hit.id);
@@ -243,6 +242,7 @@ export class FieldView {
           const nextY = clamp((point.y - this.drag.oy) / point.h, 0.08, 0.92);
           if (Math.abs(nextX - node.x) > 0.01 || Math.abs(nextY - node.y) > 0.01) {
             this.dragMoved = true;
+            this.canvas.style.touchAction = "none";
           }
           node.x = nextX;
           node.y = nextY;
@@ -254,7 +254,7 @@ export class FieldView {
     const release = (event: PointerEvent) => {
       const picked = this.drag && !this.dragMoved ? this.drag.id : "";
       if (this.drag) this.drag = null;
-      this.canvas.style.touchAction = "pan-y";
+      this.canvas.style.touchAction = "";
       if (picked) this.onPick(picked);
       const point = this.local(event);
       const rect = this.canvas.getBoundingClientRect();
@@ -383,7 +383,7 @@ export class FieldView {
     ctx.fillRect(0, 0, w, h);
 
     const tighten = this.reduced ? 0 : this.tighten;
-    const scale = Math.min(1.25, Math.max(0.72, Math.min(w, h) / 420));
+    const scale = Math.min(1.25, Math.max(0.45, Math.min(w, h) / 420));
     this.scale = scale;
     this.placed = this.nodes.map((node) => {
       let x = node.x * w;
@@ -496,11 +496,11 @@ export class FieldView {
   }
 
   private drawLabel(ctx: CanvasRenderingContext2D, node: Placed): void {
-    const px = Math.round(13 * this.scale);
-    const ps = Math.round(12 * this.scale);
-    ctx.font = node.agent
-      ? `600 ${px}px 'IBM Plex Mono', ui-monospace, monospace`
-      : `500 ${ps}px 'IBM Plex Mono', ui-monospace, monospace`;
+    const short = node.agent && this.vh < 320;
+    let size = Math.round((node.agent ? 13 : 12) * this.scale);
+    if (short) size = Math.max(9, Math.round(12 * this.scale));
+    const weight = node.agent ? 600 : 500;
+    ctx.font = `${weight} ${size}px "IBM Plex Mono", ui-monospace, monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const agent = this.placed.find((item) => item.agent);
@@ -513,13 +513,27 @@ export class FieldView {
       dx = vx / len;
       dy = vy / len;
     }
-    const off = node.r + (node.agent ? 20 : 12) * this.scale;
+    if (short) {
+      dx = 0;
+      dy = -1;
+    }
+    let span = ctx.measureText(node.label).width;
+    if (short && span > this.vw * 0.42 && span > 0) {
+      size = Math.max(8, Math.floor(size * (this.vw * 0.42) / span));
+      ctx.font = `600 ${size}px "IBM Plex Mono", ui-monospace, monospace`;
+      span = ctx.measureText(node.label).width;
+    }
     const mark = this.marks[node.id] ?? "idle";
-    const span = ctx.measureText(node.label).width;
-    const box = Math.round(17 * this.scale);
+    const box = Math.round((short ? 14 : 17) * this.scale);
+    const off = short ? node.r + 4 : node.r + (node.agent ? 20 : 12) * this.scale;
     const half = Math.abs(dx) * (span / 2 + 4) + Math.abs(dy) * (box / 2);
-    let cx = node.px + dx * (off + half + 3);
-    let cy = node.py + dy * (off + half + 3);
+    let cx = node.px + dx * (off + half + (short ? 0 : 3));
+    let cy = node.py + dy * (off + half + (short ? 0 : 3));
+    if (short) {
+      const name = this.placed.find((item) => item.id === "name");
+      const floor = name ? name.py + name.r + box / 2 + 4 : box / 2 + 4;
+      if (cy < floor) cy = node.py;
+    }
     cx = Math.min(Math.max(cx, span / 2 + 6), this.vw - span / 2 - 6);
     cy = Math.min(Math.max(cy, box / 2 + 3), this.vh - box / 2 - 3);
     ctx.fillStyle = this.color("--label-break");
