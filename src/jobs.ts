@@ -12,6 +12,16 @@ export interface MailJob {
   status: string;
   amount: string;
   escrow_id: number | null;
+  expiresAt: string;
+}
+
+export function claimWindowOpen(expiresAt: string, nowNs: bigint): boolean {
+  if (!/^\d+$/.test(expiresAt)) return false;
+  try {
+    return BigInt(expiresAt) >= nowNs;
+  } catch {
+    return false;
+  }
 }
 
 export function usdcLabel(amount: string): string {
@@ -91,6 +101,7 @@ function asJob(item: unknown): MailJob | null {
     status: row.status,
     amount,
     escrow_id: typeof row.escrow_id === "number" && Number.isInteger(row.escrow_id) ? row.escrow_id : null,
+    expiresAt: typeof row.expires_at === "string" && /^\d+$/.test(row.expires_at) ? row.expires_at : "",
   };
 }
 
@@ -203,6 +214,7 @@ export function mentionsOnlyFoundry(message: string): boolean {
 export function publicClaimError(error: unknown): string {
   const raw = errorText(error);
   if (mentionsOnlyFoundry(raw)) return "This account cannot claim that job.";
+  if (/job has expired/i.test(raw)) return "The claim window has passed.";
   if (!raw || raw.length > 160) return "The claim was not sent.";
   if (/ed25519:|seed|private|secret/i.test(raw)) return "The claim was not sent.";
   if (/[0-9a-f]{32,}/i.test(raw)) return "The claim was not sent.";

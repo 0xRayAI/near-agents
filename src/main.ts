@@ -23,7 +23,7 @@ import { readTestnetAccount, shellId, type AccountView } from "./deploy.ts";
 import { foundryMessage } from "./foundry-message.ts";
 import { loadFlow, saveFlow } from "./flow-state.ts";
 import { FieldView, type StepMark } from "./field.ts";
-import { MAILBOX, publicClaimError, readMailboxJobs, usdcLabel, type MailJob } from "./jobs.ts";
+import { MAILBOX, claimWindowOpen, publicClaimError, readMailboxJobs, usdcLabel, type MailJob } from "./jobs.ts";
 import { createWalletSession } from "./wallet.ts";
 
 function isStep(value: string | undefined): value is StepId {
@@ -248,7 +248,9 @@ function renderJobs(): void {
     const label = usdcLabel(job.amount);
     amount.textContent = label ? `${label} USDC` : job.amount;
     card.append(brief, amount);
-    const open = job.status === "posted" && !sentJobs.has(job.id);
+    const open = job.status === "posted"
+      && !sentJobs.has(job.id)
+      && claimWindowOpen(job.expiresAt, BigInt(Date.now()) * 1_000_000n);
     if (open) {
       const button = document.createElement("button");
       button.type = "button";
@@ -257,6 +259,11 @@ function renderJobs(): void {
       button.textContent = "Claim";
       button.disabled = !walletLive || !matches || claimingId !== null || connecting || signing;
       card.append(button);
+    } else if (job.status === "posted") {
+      const status = document.createElement("p");
+      status.className = "job-status";
+      status.textContent = "The claim window has passed.";
+      card.append(status);
     } else if (/^[a-z][a-z-]{0,24}$/i.test(job.status)) {
       const status = document.createElement("p");
       status.className = "job-status";
@@ -314,7 +321,13 @@ async function claimPosted(jobId: number): Promise<void> {
   if (!recorded || claimingId !== null || signing) return;
   const account = state.values.account.trim();
   if (account !== recorded.account) return;
-  const job = jobs.find((item) => item.id === jobId && item.status === "posted" && !sentJobs.has(item.id));
+  const nowNs = BigInt(Date.now()) * 1_000_000n;
+  const job = jobs.find((item) => (
+    item.id === jobId
+    && item.status === "posted"
+    && !sentJobs.has(item.id)
+    && claimWindowOpen(item.expiresAt, nowNs)
+  ));
   if (!job) return;
   claimingId = jobId;
   jobsError = "";

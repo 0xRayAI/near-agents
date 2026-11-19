@@ -5,6 +5,7 @@ import {
   TESTNET_RPC,
   buildClaim,
   buildJobsQuery,
+  claimWindowOpen,
   mentionsOnlyFoundry,
   outcomeFailure,
   parseJobBytes,
@@ -65,6 +66,10 @@ test("the job query is a testnet call and the bytes become jobs", () => {
   assert.equal(jobs[0]?.status, "posted");
   assert.equal(jobs[0]?.amount, "1000000");
   assert.equal(jobs[0]?.escrow_id, 2);
+  assert.equal(jobs[0]?.expiresAt, "1795098929201079285");
+  assert.equal(claimWindowOpen(jobs[0]?.expiresAt ?? "", 1795098929201079285n), true);
+  assert.equal(claimWindowOpen(jobs[0]?.expiresAt ?? "", 1795098929201079286n), false);
+  assert.equal(claimWindowOpen("", 1n), false);
   assert.equal(usdcLabel(jobs[0]?.amount ?? ""), "1");
 
   const stringAmount = parseJobBytes(
@@ -128,6 +133,10 @@ test("a foundry-only refusal stays public", () => {
     "This account cannot claim that job.",
   );
   assert.equal(publicClaimError(new Error("job is not posted")), "job is not posted");
+  assert.equal(
+    publicClaimError(new Error("Smart contract panicked: job has expired")),
+    "The claim window has passed.",
+  );
   assert.equal(publicClaimError(new Error("x".repeat(200))), "The claim was not sent.");
   assert.equal(
     outcomeFailure({
