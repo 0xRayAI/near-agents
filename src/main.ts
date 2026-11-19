@@ -29,6 +29,7 @@ import { loadFlow, saveFlow } from "./flow-state.ts";
 import { loadGigDraft, saveGigDraft, type GigDraft } from "./gig-draft.ts";
 import { gigSaveEnabled, gigSaveLabel, showGigControl } from "./gig-form.ts";
 import { gigMessage, gigPublicId } from "./gig-message.ts";
+import { drawingLabel } from "./drawing-label.ts";
 import { FieldView, type StepMark } from "./field.ts";
 import { createWalletSession } from "./wallet.ts";
 
@@ -72,11 +73,7 @@ const gigFoundry = document.querySelector<HTMLSelectElement>("#gig-foundry");
 const gigSave = document.querySelector<HTMLButtonElement>("#gig-save");
 const gigStatus = document.querySelector<HTMLElement>("#gig-status");
 const foundryShell = document.querySelector<HTMLElement>("#foundry-shell");
-const foundryList = document.querySelector<HTMLElement>("#foundry-list");
-const gigList = document.querySelector<HTMLElement>("#gig-list");
-const yoursSub = document.querySelector<HTMLElement>("#yours-sub");
-const yoursStatus = document.querySelector<HTMLElement>("#yours-status");
-const yoursRetry = document.querySelector<HTMLButtonElement>("#yours-retry");
+const stageEl = document.querySelector<HTMLElement>(".stage");
 const navAccount = document.querySelector<HTMLElement>("#nav-account");
 const navDisconnect = document.querySelector<HTMLButtonElement>("#nav-disconnect");
 const fieldCaption = document.querySelector<HTMLElement>("#field-caption");
@@ -371,59 +368,73 @@ function savedOn(value: string): string {
   return /^\d{4}-\d{2}-\d{2}/.test(value) ? `Saved ${value.slice(0, 10)}` : "";
 }
 
+function mounts(selector: string): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>(selector)];
+}
+
+function setMountText(selector: string, text: string): void {
+  for (const node of mounts(selector)) node.textContent = text;
+}
+
+function recordsStatus(connected: boolean): string {
+  if (!connected) {
+    if (!walletLive) return "Connect a wallet to see foundries you created and gigs you posted.";
+    if (accountView === "absent") return "That account is not on testnet yet.";
+    return "Checking the account on testnet.";
+  }
+  if (recordsState === "error") return "Your records did not load. Your wallet is still connected.";
+  return "Loading your records.";
+}
+
 function renderRecords(): void {
-  if (!foundryList || !gigList) return;
   const account = state.values.account.trim();
   const connected = walletLive && accountView === "present";
-  if (yoursSub) {
-    yoursSub.textContent = connected ? `Saved for ${account}.` : "";
+  const foundryMounts = mounts("[data-foundry-list]");
+  const gigMounts = mounts("[data-gig-list]");
+  setMountText("[data-records-sub]", connected ? `Saved for ${account}.` : "");
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-records-retry]")) {
+    button.hidden = recordsState !== "error";
   }
-  if (yoursRetry) yoursRetry.hidden = recordsState !== "error";
-  if (!connected) {
-    foundryList.replaceChildren();
-    gigList.replaceChildren();
-    if (yoursStatus) {
-      if (!walletLive) yoursStatus.textContent = "Connect a wallet above to see foundries you created and gigs you posted.";
-      else if (accountView === "absent") yoursStatus.textContent = "That account is not on testnet yet.";
-      else yoursStatus.textContent = "Checking the account on testnet.";
-    }
+  const waiting = !connected
+    || recordsState === "error"
+    || ((recordsState === "loading" || recordsState === "idle") && foundryRows.length === 0 && gigRows.length === 0);
+  if (waiting) {
+    for (const mount of foundryMounts) mount.replaceChildren();
+    for (const mount of gigMounts) mount.replaceChildren();
+    setMountText("[data-records-status]", recordsStatus(connected));
     return;
   }
-  if ((recordsState === "loading" || recordsState === "idle") && foundryRows.length === 0 && gigRows.length === 0) {
-    foundryList.replaceChildren();
-    gigList.replaceChildren();
-    if (yoursStatus) yoursStatus.textContent = "Loading your records.";
-    return;
-  }
-  if (recordsState === "error") {
-    foundryList.replaceChildren();
-    gigList.replaceChildren();
-    if (yoursStatus) yoursStatus.textContent = "Your records did not load. Your wallet is still connected.";
-    return;
-  }
-  if (yoursStatus) yoursStatus.textContent = "";
-  foundryList.replaceChildren();
+  setMountText("[data-records-status]", "");
+  for (const mount of foundryMounts) fillFoundries(mount, account);
+  for (const mount of gigMounts) fillGigs(mount, account);
+}
+
+function fillFoundries(mount: HTMLElement, account: string): void {
+  mount.replaceChildren();
   if (foundryRows.length === 0) {
     const empty = document.createElement("p");
     empty.className = "hint";
     empty.textContent = "No foundry yet. A foundry is a signed note. It does not post a gig and it does not move USDC.";
-    foundryList.append(empty);
+    mount.append(empty);
+    return;
   }
-  for (const row of foundryRows) {
-    foundryList.append(foundryCard(row, account));
-  }
-  gigList.replaceChildren();
+  for (const row of foundryRows) mount.append(foundryCard(row, account));
+}
+
+function fillGigs(mount: HTMLElement, account: string): void {
+  mount.replaceChildren();
   if (gigRows.length === 0) {
     const empty = document.createElement("p");
     empty.className = "hint";
     empty.textContent = foundryRows.length === 0
       ? "No gig yet. Save a foundry before you post a gig. No payment is sent."
       : "No gig yet. A gig is a signed note with a title, details, and a foundry. No payment is sent.";
-    gigList.append(empty);
+    mount.append(empty);
+    return;
   }
   for (const row of gigRows) {
     if (row.account !== account) continue;
-    gigList.append(gigCard(row));
+    mount.append(gigCard(row));
   }
 }
 
@@ -458,7 +469,7 @@ function foundryCard(row: FoundryRow, account: string): HTMLElement {
     post.addEventListener("click", () => {
       preferredFoundry = row.id;
       setMode("gig");
-      document.getElementById("deck")?.scrollIntoView({ block: "start" });
+      gigForm?.scrollIntoView({ block: "nearest" });
       gigTitle?.focus();
     });
     actions.append(post);
@@ -643,7 +654,9 @@ function renderUi(): void {
     checkBtn.disabled = holding || connecting;
   }
 
-  field.setAgentLabel(state.values.name);
+  const savedOnBoard = walletLive && accountView === "present" && (foundryRows.length > 0 || gigRows.length > 0);
+  stageEl?.classList.toggle("has-records", savedOnBoard);
+  field.setAgentLabel(drawingLabel(state.values.name, savedOnBoard ? (foundryRows.length || gigRows.length) : 0));
   field.setSteps({
     name: stepMark("name"),
     account: stepMark("account"),
@@ -691,9 +704,13 @@ function renderUi(): void {
   }
   if (railTitle) railTitle.textContent = gigMode ? "New gig" : "New foundry";
   if (fieldCaption) {
-    fieldCaption.textContent = gigMode
-      ? "The drawing is the foundry. A gig is a note beside it."
-      : "The drawing fills in as you complete each step.";
+    if (gigMode) {
+      fieldCaption.textContent = "The drawing is the foundry. A gig is a note beside it. Saved gigs are listed on this board.";
+    } else if (savedOnBoard && state.values.name.trim().length === 0) {
+      fieldCaption.textContent = "This drawing is the new foundry. Saved foundries and gigs are listed here.";
+    } else {
+      fieldCaption.textContent = "The drawing fills in as you complete each step.";
+    }
   }
   if (ctaTitle) ctaTitle.textContent = walletLive ? "Ready to record another?" : "Ready to record a foundry?";
   renderDeploy();
@@ -1031,11 +1048,13 @@ document.querySelector("#nav-new")?.addEventListener("click", () => setMode("fou
 document.querySelector("#cta-go")?.addEventListener("click", () => setMode("foundry"));
 navDisconnect?.addEventListener("click", () => disconnectBtn?.click());
 
-yoursRetry?.addEventListener("click", () => {
-  recordsFor = "";
-  recordsState = "idle";
-  renderUi();
-});
+for (const button of document.querySelectorAll<HTMLButtonElement>("[data-records-retry]")) {
+  button.addEventListener("click", () => {
+    recordsFor = "";
+    recordsState = "idle";
+    renderUi();
+  });
+}
 
 function rememberGigDraft(): void {
   gigDraft = {

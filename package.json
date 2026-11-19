@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "node --test test/deck.test.ts test/account.test.ts test/deploy.test.ts test/foundry-store.test.mjs test/jobs.test.ts test/flow-state.test.ts test/gig-store.test.mjs test/gig-form.test.ts test/gig-draft.test.ts",
+    "test": "node --test test/deck.test.ts test/account.test.ts test/deploy.test.ts test/foundry-store.test.mjs test/jobs.test.ts test/flow-state.test.ts test/gig-store.test.mjs test/gig-form.test.ts test/gig-draft.test.ts test/drawing-label.test.ts test/board-records.test.ts",
     "start": "node server.mjs"
   },
   "devDependencies": {
