@@ -7,6 +7,7 @@ import {
   canHold,
   canOpen,
   cancelHold,
+  continuation,
   completeHold,
   createDeck,
   fieldStatus,
@@ -362,7 +363,10 @@ function renderUi(): void {
     tab?.setAttribute("aria-current", state.active === step ? "step" : "false");
     tab?.setAttribute("aria-disabled", canOpen(state, step) ? "false" : "true");
     const next = item.querySelector<HTMLButtonElement>("[data-next]");
-    if (next) next.disabled = state.active !== step || !canFinish(state);
+    if (next) {
+      const ready = state.active === step && continuation(state) !== null;
+      next.setAttribute("aria-disabled", ready ? "false" : "true");
+    }
     const val = item.querySelector<HTMLElement>("[data-val]");
     if (val) val.textContent = state.values[step].trim();
     const input = item.querySelector<HTMLInputElement>("input");
@@ -457,6 +461,13 @@ function advanceAccountIfReady(): void {
   }
 }
 
+function commitField(): void {
+  const input = document.querySelector<HTMLInputElement>(`[data-step="${state.active}"] input`);
+  if (!input || input.dataset.field !== state.active) return;
+  if (input.value === state.values[state.active]) return;
+  state = setValue(state, state.active, input.value);
+}
+
 function tryFinish(): void {
   if (!canFinish(state)) return;
   state = finish(state);
@@ -469,11 +480,36 @@ function tryFinish(): void {
   focusStep(state.active);
 }
 
-function openStep(step: StepId): void {
-  if (state.phase === "holding") return;
-  if (step !== state.active && step === nextStep(state) && canFinish(state)) {
+function continueDeck(): void {
+  commitField();
+  const move = continuation(state);
+  if (move === "finish") {
     tryFinish();
     return;
+  }
+  if (!move) {
+    if (state.active === "account") focusStep("account");
+    return;
+  }
+  state = selectStep(state, move);
+  advanceAccountIfReady();
+  renderUi();
+  if (readyToHold()) {
+    holdBtn.focus();
+    return;
+  }
+  focusStep(state.active);
+}
+
+function openStep(step: StepId): void {
+  if (state.phase === "holding") return;
+  if (step !== state.active && step === nextStep(state)) {
+    commitField();
+    const move = continuation(state);
+    if (move === "finish" || move === step) {
+      continueDeck();
+      return;
+    }
   }
   const next = selectStep(state, step);
   if (next === state) return;
@@ -662,13 +698,15 @@ document.querySelectorAll<HTMLInputElement>("[data-field]").forEach((input) => {
   input.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
     event.preventDefault();
-    tryFinish();
+    continueDeck();
   });
 });
 
 document.querySelectorAll<HTMLButtonElement>("[data-next]").forEach((button) => {
   button.addEventListener("click", () => {
-    tryFinish();
+    const step = button.closest<HTMLElement>("[data-step]")?.dataset.step;
+    if (step !== state.active) return;
+    continueDeck();
   });
 });
 
@@ -723,8 +761,8 @@ canvas.addEventListener("keydown", (event) => {
   }
   if (event.key !== "Enter") return;
   event.preventDefault();
-  if (canFinish(state)) {
-    tryFinish();
+  if (continuation(state)) {
+    continueDeck();
     return;
   }
   if (!holdBtn.disabled) holdBtn.focus();

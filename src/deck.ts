@@ -94,6 +94,16 @@ export function nextStep(state: DeckState): StepId | null {
   return STEPS[STEPS.indexOf(state.active) + 1] ?? null;
 }
 
+/** Enter and the next arrow finish the open step, or leave a step that is already set. */
+export function continuation(state: DeckState): "finish" | StepId | null {
+  if (state.phase === "holding") return null;
+  if (canFinish(state)) return "finish";
+  const upcoming = nextStep(state);
+  if (!upcoming || !state.done.includes(state.active)) return null;
+  if (selectStep(state, upcoming).active !== upcoming) return null;
+  return upcoming;
+}
+
 /** The open step, a finished step, or the immediate next step once it can be set. */
 export function canOpen(state: DeckState, step: StepId): boolean {
   if (state.active === step) return true;

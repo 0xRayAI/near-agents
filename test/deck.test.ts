@@ -10,6 +10,7 @@ import {
   holdCue,
   railStatus,
   canOpen,
+  continuation,
   nextStep,
   selectStep,
   setValue,
@@ -99,6 +100,15 @@ test("the next step opens once the current step has a value", () => {
   const filled = setValue(account, "account", "alpha.testnet");
   assert.equal(canOpen(filled, "foundry"), true);
   assert.equal(canOpen(filled, "name"), true);
+});
+
+test("enter moves on from a step that is already set", () => {
+  const named = setValue(createDeck(), "name", "Keeper");
+  assert.equal(continuation(named), "finish");
+  const backed = selectStep(finish(named), "name");
+  assert.equal(backed.active, "name");
+  assert.equal(continuation(backed), "account");
+  assert.equal(continuation(createDeck()), null);
 });
 
 test("the hold cue names the open step", () => {

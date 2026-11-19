@@ -201,6 +201,7 @@ canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .fig { margin: 0; color: var(--muted); font-size: 14px; }
 
 .rail { display: flex; flex-direction: column; gap: 14px; padding: 26px; min-width: 0; }
+.steps, .step, .step-body { min-width: 0; max-width: 100%; }
 .rail-head h2 { margin: 0; font-family: var(--display); font-size: 28px; letter-spacing: -0.03em; line-height: 1.1; }
 .rail-sub { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -226,18 +227,18 @@ canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .step:not(.is-active) .step-body { display: none; }
 .hint, .rail-note, .account-status, #deploy-note, #deploy-lead { display: block; margin: 0 0 10px; color: var(--muted); font-size: 14px; }
 .rail-note { margin: 0; }
-.entry { display: flex; gap: 8px; align-items: center; }
-.entry input { flex: 1; min-width: 0; }
+.entry { display: flex; gap: 8px; align-items: center; min-width: 0; max-width: 100%; }
+.entry input { flex: 1 1 0; width: 0; min-width: 0; }
 input {
   width: 100%; min-height: 50px; padding: 0 16px; border-radius: 12px;
   background: var(--bg); color: var(--ink); border: 1px solid var(--line-strong); font-size: 16px;
 }
 .next-step {
-  flex: none; width: 50px; height: 50px; border: 0; border-radius: 12px;
+  position: relative; z-index: 1; flex: none; width: 50px; height: 50px; border: 0; border-radius: 12px;
   background: var(--accent); color: var(--accent-ink); font-size: 22px; font-weight: 800;
 }
-.next-step:disabled { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
-.next-step:hover:not(:disabled) { filter: brightness(1.05); }
+.next-step[aria-disabled="true"] { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.next-step:hover:not([aria-disabled="true"]) { filter: brightness(1.05); }
 input::placeholder { color: var(--muted); opacity: .7; }
 input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent); }
 .account-id { margin: 0 0 8px; font-family: var(--stamp); color: var(--accent); word-break: break-all; }
@@ -322,7 +323,7 @@ button:disabled { cursor: not-allowed; }
 .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 960px) {
-  .screen { grid-template-columns: 1fr; }
+  .screen { grid-template-columns: minmax(0, 1fr); }
   .stage { border-right: 0; border-bottom: 1px solid var(--line); }
   .field-wrap { min-height: 320px; }
   .cards.four { grid-template-columns: repeat(2, 1fr); }
