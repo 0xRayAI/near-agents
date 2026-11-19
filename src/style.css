@@ -244,12 +244,12 @@ input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px 
 .account-id { margin: 0 0 8px; font-family: var(--stamp); color: var(--accent); word-break: break-all; }
 .account-id:empty { display: none; }
 .account-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.account-actions button:not(.next-step), .deploy button, .claim-job {
+.account-actions button:not(.next-step), .deploy button, .claim-job, #gig-save, #yours-retry, #nav-disconnect {
   min-height: 44px; padding: 0 18px; border-radius: 999px;
   border: 1px solid var(--line-strong); background: transparent; font-weight: 700; font-size: 14px;
 }
-#connect-wallet, #retry-record, .claim-job { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.account-actions button:not(.next-step):hover:not(:disabled), .deploy button:hover:not(:disabled), .claim-job:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+#connect-wallet, #retry-record, #gig-save, #notice-gig, .claim-job { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.account-actions button:not(.next-step):hover:not(:disabled), .deploy button:hover:not(:disabled), .claim-job:hover:not(:disabled), #gig-save:hover:not(:disabled), #yours-retry:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .account-actions .next-step { margin-left: auto; }
 .next-step:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 button:disabled { cursor: not-allowed; }
@@ -280,6 +280,42 @@ button:disabled { cursor: not-allowed; }
 .job-brief { font-weight: 700; }
 .job-meta { color: var(--accent); font-family: var(--stamp); font-size: 13px; }
 .job-status { color: var(--muted); font-size: 14px; }
+
+.mode-switch { display: flex; gap: 8px; }
+.mode-switch button {
+  flex: 1; min-height: 44px; border-radius: 999px; border: 1px solid var(--line-strong);
+  background: transparent; font-weight: 700;
+}
+.mode-switch button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.deploy-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#gig-form { display: grid; gap: 8px; }
+#gig-form[hidden] { display: none; }
+#gig-save { width: 100%; min-height: 52px; border-radius: 999px; font-weight: 800; }
+#gig-save:disabled { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--line-strong); }
+textarea, select {
+  width: 100%; border-radius: 12px; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--line-strong); font: inherit; font-size: 16px;
+}
+textarea { min-height: 96px; padding: 12px 16px; resize: vertical; }
+select { min-height: 50px; padding: 0 16px; }
+textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent); }
+.nav-account { margin: 0; font-family: var(--stamp); font-size: 13px; color: var(--accent); max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-account[hidden], #nav-disconnect[hidden] { display: none; }
+.nav-menu { display: none; }
+.record-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.record-groups h3 { margin: 0 0 10px; font-size: 18px; }
+.record-card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 14px; display: grid; gap: 6px; margin-bottom: 10px; }
+.record-card p { margin: 0; }
+.record-id { font-family: var(--stamp); color: var(--accent); font-size: 13px; }
+.record-name { font-weight: 700; }
+.record-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.record-actions button {
+  min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-strong);
+  background: transparent; font-weight: 700;
+}
+.record-actions button:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+#yours-retry { margin-top: 12px; }
+.rail.is-gig #foundry-steps, .rail.is-gig #hold-dock, .rail.is-gig #rail-note, .rail.is-gig #receipt { display: none; }
 
 /* sections */
 .section { max-width: 1240px; margin: 0 auto; padding: clamp(64px, 9vw, 120px) clamp(16px, 4vw, 48px) 0; scroll-margin-top: 60px; }
@@ -325,17 +361,20 @@ button:disabled { cursor: not-allowed; }
 @media (max-width: 960px) {
   .screen { grid-template-columns: minmax(0, 1fr); }
   .stage { border-right: 0; border-bottom: 1px solid var(--line); }
-  .field-wrap { min-height: 320px; }
   .cards.four { grid-template-columns: repeat(2, 1fr); }
   .cards.three { grid-template-columns: 1fr; }
   .nav-links { display: none; }
+  .nav-menu { display: block; }
+  .nav-menu summary { min-height: 44px; cursor: pointer; list-style: none; }
+  .nav-menu a { display: block; padding: 8px 0; color: var(--ink); text-decoration: none; }
+  .record-groups { grid-template-columns: 1fr; }
+  .field-wrap { min-height: 280px; }
 }
 @media (max-width: 560px) {
   .cards.four { grid-template-columns: 1fr; }
   .rail { padding: 18px; }
   .stage { padding: 14px; }
   .field-wrap { min-height: 280px; }
-  .nav-actions .btn-sm { display: none; }
   .num { margin-bottom: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {

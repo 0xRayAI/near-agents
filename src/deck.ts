@@ -80,6 +80,15 @@ export function finish(state: DeckState): DeckState {
   };
 }
 
+/** A saved foundry starts the next one. The account stays. The name, id, and job do not. */
+export function anotherRound(state: DeckState): DeckState {
+  const account = state.values.account;
+  const next = createDeck();
+  if (!account.trim()) return next;
+  next.values.account = account;
+  return next;
+}
+
 export function selectStep(state: DeckState, step: StepId): DeckState {
   if (state.phase === "holding") return state;
   const index = STEPS.indexOf(step);
@@ -182,7 +191,7 @@ const STEP_LABEL: Record<StepId, string> = {
 export function holdCue(state: DeckState): string {
   if (state.phase === "holding") return "Holding";
   if (state.phase === "rehearsed") return "Nothing was sent";
-  if (canHold(state)) return "Hold to run";
+  if (canHold(state)) return "Hold to record";
   const missing = STEPS.find((step) => !state.done.includes(step)) ?? "name";
   return `${STEP_LABEL[missing]}, then hold`;
 }

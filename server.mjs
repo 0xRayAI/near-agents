@@ -3,10 +3,13 @@ import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createFoundryStore, readFoundryBody } from "./foundry-store.mjs";
+import { createGigStore, readGigBody } from "./gig-store.mjs";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "dist");
 const port = Number(process.env.PORT) || 4321;
-const store = createFoundryStore(join(process.env.FOUNDRY_DIR || join(fileURLToPath(new URL(".", import.meta.url)), "data"), "foundries.json"));
+const dataDir = process.env.FOUNDRY_DIR || join(fileURLToPath(new URL(".", import.meta.url)), "data");
+const store = createFoundryStore(join(dataDir, "foundries.json"));
+const gigs = createGigStore(join(dataDir, "gigs.json"), store);
 
 function sendJson(res, status, body) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
@@ -53,12 +56,44 @@ const types = {
 const server = createServer(async (req, res) => {
   const url = new URL(req.url || "/", "http://127.0.0.1");
   if (url.pathname === "/api/foundry" && req.method === "GET") {
+    if (url.searchParams.has("account")) {
+      const foundries = store.list(url.searchParams.get("account") || "");
+      if (!foundries) {
+        sendJson(res, 400, { ok: false, error: "Connect a testnet account." });
+        return;
+      }
+      sendJson(res, 200, { ok: true, foundries });
+      return;
+    }
     const record = store.get(url.searchParams.get("id") || "");
     if (!record) {
       sendJson(res, 404, { ok: false, error: "That foundry is not recorded." });
       return;
     }
     sendJson(res, 200, { ok: true, record });
+    return;
+  }
+  if (url.pathname === "/api/gig" && req.method === "GET") {
+    const rows = gigs.list(url.searchParams.get("account") || "");
+    if (!rows) {
+      sendJson(res, 400, { ok: false, error: "Connect a testnet account." });
+      return;
+    }
+    sendJson(res, 200, { ok: true, gigs: rows });
+    return;
+  }
+  if (url.pathname === "/api/gig" && req.method === "POST") {
+    try {
+      const parsed = readGigBody(await readBody(req));
+      if (!parsed.ok) {
+        sendJson(res, 400, { ok: false, error: parsed.error });
+        return;
+      }
+      const saved = await gigs.put(parsed.record);
+      sendJson(res, saved.ok ? 200 : 400, saved.ok ? { ok: true, record: saved.record } : { ok: false, error: saved.error });
+    } catch {
+      sendJson(res, 400, { ok: false, error: "The gig was not saved." });
+    }
     return;
   }
   if (url.pathname === "/api/foundry" && req.method === "POST") {

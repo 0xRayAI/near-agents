@@ -74,6 +74,55 @@ test("a full-access signature records the wallet account", async () => {
   assert.equal(taken.ok, false);
 });
 
+test("a list returns that account only", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "foundry-list-"));
+  const store = createFoundryStore(join(dir, "book.json"), async () => {
+    return new Response(JSON.stringify({ result: { permission: "FullAccess" } }), { status: 200 });
+  });
+  const { rawPublic, privateKey } = keyPair();
+  const first = await store.put(signedFoundry(privateKey, rawPublic, {
+    name: "ada",
+    account: "ada.testnet",
+    foundry: "adabuilds",
+    job: "make gizmos",
+  }, 4));
+  const second = await store.put(signedFoundry(privateKey, rawPublic, {
+    name: "ada",
+    account: "ada.testnet",
+    foundry: "adaworks",
+    job: "paint a sign",
+  }, 5));
+  const otherKey = keyPair();
+  await store.put(signedFoundry(otherKey.privateKey, otherKey.rawPublic, {
+    name: "bea",
+    account: "bea.testnet",
+    foundry: "beaworks",
+    job: "keep watch",
+  }, 6));
+  assert.equal(first.ok, true);
+  assert.equal(second.ok, true);
+  const rows = store.list("ada.testnet");
+  assert.deepEqual(rows.map((row) => row.id).sort(), ["adabuilds", "adaworks"]);
+  assert.equal(rows.every((row) => row.account === "ada.testnet" && row.name === "ada" && row.listing === "pending"), true);
+  assert.equal(JSON.stringify(rows).includes("nonce"), false);
+  assert.equal(store.list("bea.testnet").map((row) => row.id).join(), "beaworks");
+  assert.equal(store.list(""), null);
+  assert.equal(store.list("alice.near"), null);
+});
+
+function signedFoundry(privateKey, rawPublic, fields, byte) {
+  const nonce = Buffer.alloc(32, byte);
+  const message = foundryMessage(fields);
+  const payload = foundryPayload({ message, nonce }, null);
+  const signature = signPayload(privateKey, payload);
+  return readFoundryBody({
+    ...fields,
+    publicKey: `ed25519:${encodeBase58(rawPublic)}`,
+    signature: signature.toString("base64"),
+    nonce: nonce.toString("base64"),
+  }).record;
+}
+
 test("a mainnet account and a bad signature are refused", async () => {
   const rejected = readFoundryBody({
     name: "ada",

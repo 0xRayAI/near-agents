@@ -199,6 +199,21 @@ function emptyBook() {
   return { foundries: {}, nonces: [] };
 }
 
+function publicFoundry(row) {
+  if (!row || typeof row !== "object") return null;
+  const id = shellId(row.id);
+  const account = typeof row.account === "string" ? row.account : "";
+  if (!id || !isTestnetAccount(account)) return null;
+  return {
+    id,
+    name: typeof row.name === "string" ? row.name : "",
+    account,
+    job: typeof row.job === "string" ? row.job : "",
+    listing: "pending",
+    recordedAt: typeof row.recordedAt === "string" ? row.recordedAt : "",
+  };
+}
+
 export function createFoundryStore(file, fetchImpl = fetch) {
   function load() {
     try {
@@ -224,6 +239,13 @@ export function createFoundryStore(file, fetchImpl = fetch) {
       const foundry = shellId(id);
       if (!foundry) return null;
       return load().foundries[foundry] || null;
+    },
+    list(account) {
+      if (!isTestnetAccount(account)) return null;
+      return Object.values(load().foundries)
+        .map(publicFoundry)
+        .filter((row) => row && row.account === account)
+        .sort((a, b) => String(b.recordedAt).localeCompare(String(a.recordedAt)));
     },
     async put(record) {
       const book = load();
@@ -261,6 +283,10 @@ export function createFoundryStore(file, fetchImpl = fetch) {
       return { ok: true, record: saved };
     },
   };
+}
+
+export async function fullAccessOnAccount(account, publicKey, fetchImpl = fetch) {
+  return keyOnAccount(account, publicKey, fetchImpl);
 }
 
 async function keyOnAccount(account, publicKey, fetchImpl) {

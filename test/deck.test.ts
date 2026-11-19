@@ -4,6 +4,7 @@ import {
   beginHold,
   canFinish,
   cancelHold,
+  anotherRound,
   completeHold,
   createDeck,
   finish,
@@ -116,9 +117,27 @@ test("the hold cue names the open step", () => {
   assert.equal(holdCue(start), "Name, then hold");
   assert.equal(railStatus(start, false), "Type a name.");
   const armed = arm();
-  assert.equal(holdCue(armed), "Hold to run");
+  assert.equal(holdCue(armed), "Hold to record");
   assert.equal(railStatus(beginHold(armed), false), "Holding. Let go to cancel.");
   assert.equal(holdCue(completeHold(beginHold(armed))), "Nothing was sent");
+});
+
+test("another round clears the name and id and keeps the account", () => {
+  const saved = completeHold(beginHold(arm()));
+  const again = anotherRound(saved);
+  assert.equal(again.phase, "edit");
+  assert.equal(again.active, "name");
+  assert.equal(again.values.name, "");
+  assert.equal(again.values.foundry, "");
+  assert.equal(again.values.job, "");
+  assert.equal(again.values.account, "alpha.testnet");
+  assert.deepEqual(again.done, []);
+  assert.deepEqual(again.receipt, []);
+  assert.equal(canFinish(again), false);
+  const named = finish(setValue(again, "name", "Second"));
+  assert.equal(named.active, "account");
+  assert.equal(named.values.account, "alpha.testnet");
+  assert.equal(named.values.foundry, "");
 });
 
 test("receipt text is a testnet rehearsal and has no transaction hash", () => {

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Deploy an agent on NEAR — 0xRay</title>
-  <meta name="description" content="Name it, connect a testnet wallet, and give it a job. Powered by 0xRay. No payment is sent." />
+  <title>Record a foundry on NEAR testnet — 0xRay</title>
+  <meta name="description" content="Name it, connect a testnet wallet, and sign a foundry. Post a gig as a note. No payment is sent." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%2308090b' width='32' height='32'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%2300ec97' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ffb26b'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,24 +23,34 @@
       <a href="#how">How it works</a>
       <a href="#why">Why NEAR</a>
       <a href="#faq">FAQ</a>
+      <a href="#yours">Your records</a>
     </nav>
+    <details class="nav-menu">
+      <summary>Menu</summary>
+      <a href="#how">How it works</a>
+      <a href="#why">Why NEAR</a>
+      <a href="#faq">FAQ</a>
+      <a href="#yours">Your records</a>
+    </details>
     <div class="nav-actions">
+      <p id="nav-account" class="nav-account" hidden></p>
+      <button type="button" id="nav-disconnect" hidden>Disconnect</button>
       <button type="button" id="sheet-toggle" class="sheet-toggle" aria-pressed="false" aria-label="Switch to light mode">Light</button>
-      <a class="btn btn-primary btn-sm" href="#deck">Deploy agent</a>
+      <a class="btn btn-primary" id="nav-new" href="#deck">New foundry</a>
     </div>
   </header>
 
   <main id="top">
     <section class="hero">
       <p class="pill"><span class="dot" aria-hidden="true"></span>Live on NEAR testnet · free to try</p>
-      <h1>Deploy your own AI agent on NEAR <span class="hl">in four steps.</span></h1>
-      <p class="lede">Name it, connect your wallet, give it a job. Testnet only. Your keys stay in the wallet.</p>
+      <h1>Record a foundry. <span class="hl">Post a gig as a note.</span></h1>
+      <p class="lede">Name it, connect once, and sign with your wallet. Testnet only. No payment is sent. Listing stays pending.</p>
       <div class="hero-cta">
-        <a class="btn btn-primary" href="#deck">Deploy an agent <span aria-hidden="true">→</span></a>
+        <a class="btn btn-primary" href="#deck">Start a foundry <span aria-hidden="true">→</span></a>
         <a class="btn btn-ghost" href="#how">See how it works</a>
       </div>
       <ul class="trust" aria-label="Guarantees">
-        <li><b>0</b> payment needed</li>
+        <li><b>0</b> payment sent</li>
         <li><b>4</b> simple steps</li>
         <li><b>100%</b> your wallet signs</li>
       </ul>
@@ -50,25 +60,41 @@
       <div class="screen">
         <section class="stage">
           <div class="stage-head">
-            <p class="eyebrow">Your agent</p>
+            <p class="eyebrow" id="stage-eyebrow">Your foundry</p>
             <p class="field-state" id="field-state">Open</p>
           </div>
           <div class="field-wrap">
-            <canvas id="field" tabindex="0" role="application" aria-label="Agent. Name, account, foundry, and job." aria-describedby="field-help"></canvas>
+            <canvas id="field" tabindex="0" role="application" aria-label="Foundry. Name, account, foundry, and what it will do." aria-describedby="field-help"></canvas>
             <p id="node-focus" class="sr" aria-live="polite"></p>
             <p id="field-help" class="sr">Arrow keys move among the nodes. Enter sets the open step.</p>
           </div>
-          <p class="fig">Your agent takes shape as you fill in each step. Drag the dots to play.</p>
+          <p class="fig" id="field-caption">The drawing fills in as you complete each step.</p>
         </section>
-        <aside class="rail" aria-label="Deploy steps">
+        <aside class="rail" id="rail" aria-label="Deploy steps">
           <div class="rail-head">
-            <h2>Four steps</h2>
+            <h2 id="rail-title">New foundry</h2>
             <p class="rail-sub">Testnet only. No payment is sent.</p>
           </div>
-          <ol class="steps">
+          <div class="mode-switch" role="tablist" aria-label="What to save">
+            <button type="button" id="mode-foundry" role="tab" aria-pressed="true" aria-controls="foundry-steps">New foundry</button>
+            <button type="button" id="mode-gig" role="tab" aria-pressed="false" aria-controls="gig-form">New gig</button>
+          </div>
+          <section id="deploy" class="deploy" hidden>
+            <p id="deploy-lead"></p>
+            <pre id="deploy-command"></pre>
+            <div class="deploy-actions">
+              <button type="button" id="copy-command" hidden>Copy note</button>
+              <button type="button" id="notice-gig" hidden>Post a gig</button>
+              <button type="button" id="notice-another" hidden>Post another</button>
+              <button type="button" id="notice-close" hidden>Close</button>
+              <button type="button" id="retry-record" hidden>Sign and record</button>
+            </div>
+            <p class="hint" id="deploy-note"></p>
+          </section>
+          <ol class="steps" id="foundry-steps">
             <li class="step is-active" data-step="name">
               <button type="button" class="step-tab" data-select="name" aria-current="step">
-                <span class="idx">1</span><span class="lab">Name your agent</span>
+                <span class="idx">1</span><span class="lab">Name your foundry</span>
                 <span class="mark" aria-hidden="true"></span><span class="val" data-val></span>
               </button>
               <div class="step-body">
@@ -98,24 +124,25 @@
             </li>
             <li class="step" data-step="foundry">
               <button type="button" class="step-tab" data-select="foundry" aria-current="false">
-                <span class="idx">3</span><span class="lab">Choose a foundry</span>
+                <span class="idx">3</span><span class="lab">Foundry id</span>
                 <span class="mark" aria-hidden="true"></span><span class="val" data-val></span>
               </button>
               <div class="step-body">
-                <label class="hint" for="input-foundry">A short id you choose.</label>
+                <label class="hint" for="input-foundry">Letters and numbers. The saved id starts with a letter.</label>
                 <div class="entry">
                   <input id="input-foundry" data-field="foundry" maxlength="32" autocomplete="off" spellcheck="false" placeholder="e.g. orbitworks" />
                   <button type="button" class="next-step" data-next aria-label="Next step" aria-disabled="true"><span aria-hidden="true">→</span></button>
                 </div>
+                <p class="hint" id="foundry-shell"></p>
               </div>
             </li>
             <li class="step" data-step="job">
               <button type="button" class="step-tab" data-select="job" aria-current="false">
-                <span class="idx">4</span><span class="lab">Give it a job</span>
+                <span class="idx">4</span><span class="lab">What it will do</span>
                 <span class="mark" aria-hidden="true"></span><span class="val" data-val></span>
               </button>
               <div class="step-body">
-                <label class="hint" for="input-job">One line on what it should do. No payment is sent.</label>
+                <label class="hint" for="input-job">One line on what it will do. Saving a foundry does not post a gig and does not move USDC.</label>
                 <div class="entry">
                   <input id="input-job" data-field="job" maxlength="80" autocomplete="off" spellcheck="false" placeholder="e.g. summarize new proposals" />
                   <button type="button" class="next-step" data-next aria-label="Next step" aria-disabled="true"><span aria-hidden="true">→</span></button>
@@ -123,7 +150,18 @@
               </div>
             </li>
           </ol>
-          <div class="hold-dock">
+          <form id="gig-form" hidden>
+            <label class="hint" for="gig-title">Title</label>
+            <input id="gig-title" maxlength="80" autocomplete="off" spellcheck="false" placeholder="e.g. Summarize proposals" />
+            <label class="hint" for="gig-details">Details</label>
+            <textarea id="gig-details" maxlength="240" placeholder="What the work is, in a few lines."></textarea>
+            <label class="hint" for="gig-foundry">Foundry</label>
+            <select id="gig-foundry"></select>
+            <p class="hint" id="gig-pay">No payment is sent. This gig is a signed note. It does not send a chain transaction.</p>
+            <button type="button" id="gig-save">Add a title</button>
+            <p class="account-status" id="gig-status" role="status"></p>
+          </form>
+          <div class="hold-dock" id="hold-dock">
             <button type="button" id="hold" disabled aria-describedby="hold-help">
               <span class="hold-label" id="hold-label">Name, then hold</span>
               <span class="meter" id="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Hold progress"></span>
@@ -134,41 +172,47 @@
           <div id="receipt" role="log" aria-live="polite" aria-relevant="additions">
             <p class="quiet">Press and hold. A preview prints here.</p>
           </div>
-          <section id="deploy" class="deploy" hidden>
-            <p id="deploy-lead"></p>
-            <pre id="deploy-command"></pre>
-            <button type="button" id="copy-command" hidden>Copy the record</button>
-            <button type="button" id="retry-record" hidden>Sign and record</button>
-            <p class="hint" id="deploy-note"></p>
-          </section>
-          <section id="jobs" class="jobs" hidden>
-            <p class="eyebrow">Jobs waiting</p>
-            <div id="job-list"></div>
-            <p class="hint" id="jobs-note">Recording a foundry does not post a job. The USDC stays in the escrow. The wallet signs one testnet call and pays the network fee. This page does not take a key.</p>
-            <p class="account-status" id="jobs-status" role="status"></p>
-          </section>
         </aside>
       </div>
     </section>
 
+    <section class="section" id="yours">
+      <p class="eyebrow">Your records</p>
+      <h2 class="sec-title">Foundries and gigs you saved.</h2>
+      <p id="yours-sub" class="lede"></p>
+      <div class="record-groups">
+        <section aria-labelledby="foundries-heading">
+          <h3 id="foundries-heading">Foundries you created</h3>
+          <div id="foundry-list"></div>
+        </section>
+        <section aria-labelledby="gigs-heading">
+          <h3 id="gigs-heading">Gigs you posted</h3>
+          <div id="gig-list"></div>
+        </section>
+      </div>
+      <p id="yours-status" class="account-status" role="status"></p>
+      <button type="button" id="yours-retry" hidden>Check again</button>
+    </section>
+
     <section class="section" id="how">
       <p class="eyebrow">How it works</p>
-      <h2 class="sec-title">From a name to a recorded agent.</h2>
+      <h2 class="sec-title">From a name to a saved foundry.</h2>
       <ol class="cards four">
-        <li><span class="num">01</span><h3>Name it</h3><p>Give your agent an identity people will recognise.</p></li>
-        <li><span class="num">02</span><h3>Connect</h3><p>Link a NEAR testnet wallet. Your keys stay with you.</p></li>
-        <li><span class="num">03</span><h3>Set it up</h3><p>Pick a foundry and describe the job it should do.</p></li>
-        <li><span class="num">04</span><h3>Hold to record</h3><p>Sign once. The foundry is stored for that account. Listing stays pending.</p></li>
+        <li><span class="num">01</span><h3>Name it</h3><p>Give the foundry a name you will remember.</p></li>
+        <li><span class="num">02</span><h3>Connect</h3><p>Link a NEAR testnet wallet once. Your keys stay with you. The wallet stays connected for the next one.</p></li>
+        <li><span class="num">03</span><h3>Set the id</h3><p>Pick a foundry id and say what it will do.</p></li>
+        <li><span class="num">04</span><h3>Hold to sign</h3><p>Sign once. The foundry is stored for that account. Listing stays pending. No agent id is assigned.</p></li>
       </ol>
+      <p class="lede">To post a gig, open New gig. That is also a signed note. No payment is sent.</p>
     </section>
 
     <section class="section" id="why">
       <p class="eyebrow">Why NEAR</p>
-      <h2 class="sec-title">A record your wallet signs.</h2>
+      <h2 class="sec-title">A note your wallet signs.</h2>
       <div class="cards three">
-        <article><h3>Signed by you</h3><p>The record is tied to your testnet account. This page does not take a key.</p></article>
-        <article><h3>Funds stay in escrow</h3><p>A posted job can name an escrow deal. The USDC stays there until the client accepts.</p></article>
-        <article><h3>Fast and cheap</h3><p>NEAR settles in about a second, for a fraction of a cent.</p></article>
+        <article><h3>Signed by you</h3><p>The note is tied to your testnet account. This page does not take a key.</p></article>
+        <article><h3>Nothing is charged here</h3><p>A foundry does not move USDC. A gig does not move USDC. No payment is sent.</p></article>
+        <article><h3>Yours to read later</h3><p>Foundries you created and gigs you posted stay under Your records for this account.</p></article>
       </div>
     </section>
 
@@ -176,16 +220,19 @@
       <p class="eyebrow">FAQ</p>
       <h2 class="sec-title">Good questions.</h2>
       <div class="faq">
-        <details><summary>Does this cost anything?</summary><p>No payment is sent. It runs on NEAR testnet. A wallet call still pays the network fee.</p></details>
+        <details><summary>Does this cost anything?</summary><p>No payment is sent when you record a foundry or save a gig. Both are signed notes.</p></details>
         <details><summary>Do I need a wallet?</summary><p>Yes, a NEAR testnet wallet. Grab free test tokens from the <a href="https://docs.near.org/getting-started/faucet">faucet</a>.</p></details>
         <details><summary>Do you see my private key?</summary><p>Never. Your wallet signs a message. This site only checks the signature.</p></details>
-        <details><summary>What can my agent do?</summary><p>After it is recorded, this page can show a posted job. Claim stays off once that job's window has passed.</p></details>
+        <details><summary>What is a foundry?</summary><p>A signed note: a name, your account, an id, and what it will do. Listing stays pending. No agent id is assigned. It does not post a gig.</p></details>
+        <details><summary>What is a gig?</summary><p>A signed note: a title, details, and which foundry offers it. No payment is sent. It does not send a chain transaction.</p></details>
+        <details><summary>Can I record another?</summary><p>Yes. After one is saved, the name, the id, and what it will do are cleared. Your wallet stays connected. You are back on the name step.</p></details>
+        <details><summary>Where are the ones I saved?</summary><p>Under Your records, once the wallet is connected. Leave and come back, connect the same wallet, and they are listed again.</p></details>
       </div>
     </section>
 
     <section class="cta-band">
-      <h2>Ready to record yours?</h2>
-      <a class="btn btn-primary" href="#deck">Deploy an agent <span aria-hidden="true">→</span></a>
+      <h2 id="cta-title">Ready to record a foundry?</h2>
+      <a class="btn btn-primary" id="cta-go" href="#deck">New foundry <span aria-hidden="true">→</span></a>
     </section>
   </main>
 
