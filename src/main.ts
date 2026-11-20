@@ -29,6 +29,7 @@ import { loadFlow, saveFlow } from "./flow-state.ts";
 import { loadGigDraft, saveGigDraft, type GigDraft } from "./gig-draft.ts";
 import { gigSaveEnabled, gigSaveLabel, showGigControl } from "./gig-form.ts";
 import { gigMessage, gigPublicId } from "./gig-message.ts";
+import { agentPrompt } from "./agent-prompt.ts";
 import { drawingLabel } from "./drawing-label.ts";
 import { spokeLabel } from "./field-marks.ts";
 import { parseGigSide, parseRecordTab, type GigSide, type RecordTab } from "./record-tabs.ts";
@@ -61,6 +62,9 @@ const deployPanel = document.querySelector<HTMLElement>("#deploy");
 const deployLead = document.querySelector<HTMLElement>("#deploy-lead");
 const deployCommandEl = document.querySelector<HTMLElement>("#deploy-command");
 const deployNote = document.querySelector<HTMLElement>("#deploy-note");
+const agentHand = document.querySelector<HTMLElement>("#agent-hand");
+const agentPromptEl = document.querySelector<HTMLElement>("#agent-prompt");
+const agentCopy = document.querySelector<HTMLButtonElement>("#agent-copy");
 const copyBtn = document.querySelector<HTMLButtonElement>("#copy-command");
 const retryBtn = document.querySelector<HTMLButtonElement>("#retry-record");
 const noticeGig = document.querySelector<HTMLButtonElement>("#notice-gig");
@@ -134,7 +138,7 @@ interface GigRow {
 }
 
 type Notice =
-  | { kind: "foundry-saved"; id: string; account: string; text: string }
+  | { kind: "foundry-saved"; id: string; account: string; name: string; job: string; text: string }
   | { kind: "gig-saved"; title: string; foundry: string; text: string };
 
 const field = new FieldView(canvas, {
@@ -274,6 +278,16 @@ function renderDeploy(): void {
   if (noticeGig) noticeGig.hidden = notice?.kind !== "foundry-saved";
   if (noticeAnother) noticeAnother.hidden = notice?.kind !== "gig-saved";
   if (noticeClose) noticeClose.hidden = !notice;
+  const handoff = notice?.kind === "foundry-saved";
+  if (agentHand) agentHand.hidden = !handoff;
+  if (handoff && agentPromptEl && notice?.kind === "foundry-saved") {
+    agentPromptEl.textContent = agentPrompt({
+      name: notice.name,
+      account: notice.account,
+      id: notice.id,
+      job: notice.job,
+    });
+  }
 }
 
 function ownedFoundries(): FoundryRow[] {
@@ -997,6 +1011,8 @@ async function recordFoundry(): Promise<void> {
       kind: "foundry-saved",
       id: body.record.id,
       account: body.record.account,
+      name: fields.name,
+      job: fields.job,
       text: recordText(body.record.id, body.record.account),
     };
     foundryRows = [{
@@ -1094,6 +1110,12 @@ async function saveGig(): Promise<void> {
 copyBtn?.addEventListener("click", () => {
   if (!notice || !copyBtn) return;
   void copyText(notice.text, copyBtn);
+});
+
+agentCopy?.addEventListener("click", () => {
+  const text = agentPromptEl?.textContent || "";
+  if (!text || !agentCopy) return;
+  void copyText(text, agentCopy);
 });
 
 retryBtn?.addEventListener("click", () => {

@@ -317,6 +317,10 @@ button:disabled { cursor: not-allowed; }
 #receipt .quiet { color: var(--muted); }
 .deploy pre { margin: 8px 0; padding: 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); white-space: pre-wrap; word-break: break-word; }
 #deploy-lead { color: var(--ink); }
+#agent-hand { display: grid; gap: 8px; margin-top: 12px; }
+#agent-hand[hidden] { display: none !important; }
+#agent-hand h3 { margin: 0; font-family: var(--display); font-size: 18px; letter-spacing: -0.02em; }
+#agent-prompt { max-height: 240px; overflow: auto; }
 .deploy[hidden], .jobs[hidden] { display: none; }
 .jobs { display: grid; gap: 10px; }
 .job-card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); padding: 14px; display: grid; gap: 6px; }
