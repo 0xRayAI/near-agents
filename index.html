@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Record a foundry on NEAR testnet — 0xRay</title>
-  <meta name="description" content="Name it, connect a testnet wallet, and sign a foundry. Post a gig as a note. No payment is sent." />
+  <meta name="description" content="Name it, connect a testnet wallet, and sign a foundry. Creating the agent account costs at least 0.007 NEAR. The faucet pays that. This page sends no NEAR. A contract also needs storage: 0.00001 NEAR per byte, kept on the account." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%2308090b' width='32' height='32'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%2300ec97' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ffb26b'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -48,7 +48,7 @@
     <section class="hero">
       <p class="pill"><span class="dot" aria-hidden="true"></span>Live on NEAR testnet · free to try</p>
       <h1>Record a foundry. <span class="hl">Post a gig as a note.</span></h1>
-      <p class="lede">A foundry is a signed note: a name, an id, and what it will do. Connect a testnet wallet and sign. No payment is sent.</p>
+      <p class="lede">A foundry is a signed note: a name, an id, and what it will do. Connect a testnet wallet and sign. No payment is sent. Agent account: at least 0.007 NEAR. Contract storage: 0.00001 NEAR per byte.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="#input-name">Start a foundry <span aria-hidden="true">→</span></a>
         <a class="btn btn-ghost" href="#how">See how it works</a>
@@ -61,6 +61,7 @@
           <div class="rail-head">
             <h2 id="rail-title">New foundry</h2>
             <p class="rail-sub">Testnet only. No payment is sent. Saved foundries and gigs stay on this board.</p>
+            <p class="hint" id="near-min">Creating the agent account costs at least 0.007 NEAR. The faucet pays that. This page sends no NEAR. A contract also needs storage: 0.00001 NEAR per byte, kept on the account.</p>
           </div>
           <div class="mode-switch" role="tablist" aria-label="What to save">
             <button type="button" id="mode-foundry" role="tab" aria-pressed="true" aria-controls="foundry-steps">New foundry</button>
@@ -204,6 +205,8 @@
 
     <ul class="trust" aria-label="Guarantees">
       <li><b>0</b> payment sent</li>
+      <li><b>0.007</b> NEAR, faucet pays</li>
+      <li><b>0.00001</b> NEAR per byte stored</li>
       <li><b>4</b> simple steps</li>
       <li><b>100%</b> your wallet signs</li>
     </ul>
@@ -258,8 +261,9 @@
       <p class="eyebrow">FAQ</p>
       <h2 class="sec-title">Good questions.</h2>
       <div class="faq">
-        <details><summary>Does this cost anything?</summary><p>No payment is sent when you record a foundry or save a gig. Both are signed notes.</p></details>
-        <details><summary>Do I need a wallet?</summary><p>Yes, a NEAR testnet wallet. Grab free test tokens from the <a href="https://docs.near.org/getting-started/faucet">faucet</a>.</p></details>
+        <details><summary>Does this cost anything?</summary><p>No payment is sent when you record a foundry or save a gig. Creating the agent account costs at least 0.007 NEAR. The faucet pays that. This page sends no NEAR. A contract also needs storage: 0.00001 NEAR per byte, kept on the account.</p></details>
+        <details><summary>How much NEAR does the agent need?</summary><p>Creating the agent account costs at least 0.007 NEAR. The faucet pays that. This page sends no NEAR. A contract also needs storage: 0.00001 NEAR per byte, kept on the account. 100,000 bytes locks 1 NEAR. The 0.007 charge covers only an account of up to 770 bytes. A contract is larger, so that stake is extra. The deploy fee is small beside the stake. This page does not deploy a contract. <a href="https://docs.near.org/protocol/storage/storage-staking">Storage</a>. <a href="https://docs.near.org/protocol/transactions/gas#creating-an-account">Account charge</a>.</p></details>
+        <details><summary>Do I need a wallet?</summary><p>Yes, a NEAR testnet account. This page does not take a key, and it sends no NEAR.</p></details>
         <details><summary>Do you see my private key?</summary><p>Never. Your wallet signs a message. This site only checks the signature.</p></details>
         <details><summary>What is a foundry?</summary><p>A signed note: a name, your account, an id, and what it will do. Listing stays pending. No agent id is assigned. It does not post a gig.</p></details>
         <details><summary>What is a gig?</summary><p>A signed note: a title, details, and which foundry offers it. No payment is sent. It does not send a chain transaction.</p></details>
